@@ -110,6 +110,7 @@ body { background: var(--bg); color: var(--ice); font-family: var(--sans); overf
 .screen input[type="tel"]:focus { outline: none; border-bottom-color: var(--aqua); }
 .consent { display: flex; gap: 8px; align-items: flex-start; text-align: left; font-size: 11px; line-height: 1.5; color: #9fb8c1; }
 .consent input { margin-top: 2px; accent-color: #fff; }
+.consent a { color: inherit; text-decoration: underline; }
 .err { margin: 0; min-height: 1em; font-size: 12px; font-weight: 700; color: var(--red); letter-spacing: .06em; }
 .row { display: flex; justify-content: center; gap: 28px; }
 .row button { background: none; border: 0; padding: 0; cursor: pointer; font-family: var(--sans); font-weight: 700; font-size: 15px; letter-spacing: .14em; text-transform: uppercase; color: #9fb8c1; }
@@ -198,7 +199,7 @@ body.deep .snd { visibility: hidden; }
     <p class="voice" id="voice"></p>
     <div id="formBits" hidden style="display:grid;gap:16px">
       <input type="tel" id="num" inputmode="tel" autocomplete="tel" placeholder="YOUR NUMBER" aria-label="Your phone number">
-      <label class="consent" for="agree"><input type="checkbox" id="agree"> I agree to get texts from 16eyes about music, drops and shows. Msg &amp; data rates may apply. Reply STOP to opt out.</label>
+      <label class="consent" for="agree"><input type="checkbox" id="agree"> I agree to get texts from 16eyes about music, drops and shows. Msg &amp; data rates may apply. Reply STOP to opt out. <a href="https://docs.laylo.com/en/articles/6497431-terms-of-service" target="_blank" rel="noopener">Terms</a> &middot; <a href="https://docs.laylo.com/en/articles/6497219-privacy-and-gdpr-policy" target="_blank" rel="noopener">Privacy</a></label>
       <p class="err" id="err"></p>
       <div class="row">
         <button type="submit" class="primary">send</button>
@@ -382,9 +383,17 @@ body.deep .snd { visibility: hidden; }
     const n = $('num').value.replace(/\D/g, ''), err = $('err');
     if (n.length < 10) { err.textContent = 'That number looks short. Try again.'; return; }
     if (!$('agree').checked) { err.textContent = 'Tick the box so we can text you.'; return; }
-    err.textContent = ''; bits.hidden = true;
-    try { localStorage.setItem('16eyes-line', 'joined'); } catch (e) {}
-    typeOut('Got you. Stay by the phone. (Preview: number not saved)', () => setTimeout(hangUp, 2200));
+    err.textContent = ''; const send = $('callForm').querySelector('[type=submit]'); send.disabled = true;
+    fetch('/api/line', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: $('num').value, agree: true }) })
+      .then(r => r.json().then(d => ({ ok: r.ok && d.ok, error: d.error }), () => ({ ok: false })))
+      .catch(() => ({ ok: false }))
+      .then(({ ok, error }) => {
+        send.disabled = false;
+        if (!ok) { err.textContent = error === 'bad_number' ? 'That number doesn\'t look right. Try again.' : 'The line dropped. Try again in a minute.'; return; }
+        bits.hidden = true;
+        try { localStorage.setItem('16eyes-line', 'joined'); } catch (e) {}
+        typeOut('Got you. Stay by the phone.', () => setTimeout(hangUp, 2200));
+      });
   });
 
   /* ---------- spin the disc like a coin: drag sideways and it turns around its vertical axis ---------- */
