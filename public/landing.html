@@ -241,15 +241,21 @@ body { background: var(--bg); color: var(--ice); font-family: var(--sans); overf
       o.start(s); o.stop(s + dur + .02);
     });
   }
-  // the bell, chopped up: little dropouts and detuned chunks like a bad line
-  function ringTone() { if (!ac) return; [0, .6].forEach(t0 => {
-    for (let c = 0; c < 8; c++) {
-      if (Math.random() < .2) continue;
-      const s = ac.currentTime + t0 + c * .052, det = Math.pow(2, (Math.random() - .5) * 70 / 1200);
-      [440, 480].forEach(f => { const o = ac.createOscillator(), g = ac.createGain(); o.frequency.value = f * det; o.connect(g); g.connect(ac.destination);
-        g.gain.setValueAtTime(0, s); g.gain.linearRampToValueAtTime(.034, s + .006); g.gain.setValueAtTime(.034, s + .044); g.gain.linearRampToValueAtTime(0, s + .05);
-        o.start(s); o.stop(s + .055); });
-    } }); }
+  // old phone bell: 440 + 480 Hz with a 20 Hz trill, two smooth bursts per ring
+  function ringTone() {
+    if (!ac) return;
+    if (ac.state === 'suspended') ac.resume();
+    const s0 = ac.currentTime + .03, out = ac.createGain(), trill = ac.createGain(), lfo = ac.createOscillator(), depth = ac.createGain();
+    out.gain.value = 0; trill.gain.value = .75; lfo.frequency.value = 20; depth.gain.value = .25;
+    lfo.connect(depth); depth.connect(trill.gain); trill.connect(out); out.connect(ac.destination);
+    const oscs = [440, 480].map(f => { const o = ac.createOscillator(); o.frequency.value = f; o.connect(trill); return o; });
+    [0, .6].forEach(t0 => {
+      const a = s0 + t0;
+      out.gain.setValueAtTime(0, a); out.gain.linearRampToValueAtTime(.045, a + .03);
+      out.gain.setValueAtTime(.045, a + .37); out.gain.linearRampToValueAtTime(0, a + .4);
+    });
+    [lfo, ...oscs].forEach(o => { o.start(s0); o.stop(s0 + 1.05); });
+  }
 
   /* ---------- music: a slowed stand-in loop until the real track is dropped in ---------- */
   let soundOn = false, music = null, analyser = null, freq = null, beat = 0, bass = 0, noiseBuf = null;
@@ -336,14 +342,17 @@ body { background: var(--bg); color: var(--ice); font-family: var(--sans); overf
 
   /* ---------- the line ---------- */
   const phone = $('phone'), alertEl = $('alert');
-  let loop, stopT;
+  let loop, stopT, ringEvery;
+  // once someone has picked up, the phone stays quiet for the rest of the visit (and for good once they leave a number)
+  let answered = false;
+  try { answered = localStorage.getItem('16eyes-line') === 'joined'; } catch (e) {}
   function ring() {
-    if (ringing || !callEl.hidden || deep) return;
+    if (answered || ringing || !callEl.hidden || deep) return;
     ringing = true; alertEl.hidden = false; kick(.3);
-    ringTone(); loop = setInterval(() => { ringTone(); kick(.2); }, 2200); stopT = setTimeout(stopRing, 6600);
+    ringTone(); loop = setInterval(() => { ringTone(); kick(.2); }, 3000); stopT = setTimeout(stopRing, 8800);
   }
   function stopRing() { ringing = false; alertEl.hidden = true; clearInterval(loop); clearTimeout(stopT); }
-  setTimeout(ring, 3000); setInterval(ring, 16000);
+  if (!answered) { setTimeout(ring, 3000); ringEvery = setInterval(ring, 20000); }
 
   const voice = $('voice'), bits = $('formBits'), timerEl = $('timer');
   let timer, typing;
@@ -353,7 +362,7 @@ body { background: var(--bg); color: var(--ice); font-family: var(--sans); overf
     let i = 0; typing = setInterval(() => { voice.textContent = text.slice(0, ++i); if (i >= text.length) { clearInterval(typing); done(); } }, 38);
   }
   phone.addEventListener('click', () => {
-    liftTarget = 1;
+    liftTarget = 1; answered = true; clearInterval(ringEvery);
     stopRing(); kick(1); callEl.hidden = false; bits.hidden = true; $('err').textContent = '';
     let s = 0; timerEl.textContent = '00:00'; clearInterval(timer);
     timer = setInterval(() => { s++; timerEl.textContent = '00:' + String(s).padStart(2, '0'); }, 1000);
@@ -368,6 +377,7 @@ body { background: var(--bg); color: var(--ice); font-family: var(--sans); overf
     if (n.length < 10) { err.textContent = 'That number looks short. Try again.'; return; }
     if (!$('agree').checked) { err.textContent = 'Tick the box so we can text you.'; return; }
     err.textContent = ''; bits.hidden = true;
+    try { localStorage.setItem('16eyes-line', 'joined'); } catch (e) {}
     typeOut('Got you. Stay by the phone. (Preview: number not saved)', () => setTimeout(hangUp, 2200));
   });
 
