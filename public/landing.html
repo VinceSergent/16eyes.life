@@ -180,7 +180,6 @@ body { background: var(--bg); color: var(--ice); font-family: var(--sans); overf
   <button id="phone" class="phone3d" aria-label="The line: pick up the phone for text updates"><span class="lbl">The Line</span><span class="alert" id="alert" hidden>incoming call</span></button>
 
   <div class="drift"><button class="deeper" id="deeper">go deeper...</button></div>
-  <div class="note drift" id="note">preview &middot; links not connected yet</div>
 </div>
 
 <section class="beyond" id="beyond" hidden>
@@ -314,7 +313,7 @@ body { background: var(--bg); color: var(--ice); font-family: var(--sans); overf
   function say(msg) { toast.textContent = msg; toast.hidden = false; clearTimeout(say.t); say.t = setTimeout(() => toast.hidden = true, 2400); }
 
   /* ---------- state the renderer reads ---------- */
-  let glitch = 0, ringing = false, eyeFound = false, deep = false, lift = 0, liftTarget = 0;
+  let glitch = 0, ringing = false, eyeFound = false, deep = false, lift = 0, liftTarget = 0, hover = 0, hoverTarget = 0;
   const kick = v => { glitch = Math.max(glitch, v); };
 
   /* ---------- menu ---------- */
@@ -361,6 +360,10 @@ body { background: var(--bg); color: var(--ice); font-family: var(--sans); overf
     if (reduce) { voice.textContent = text; return done(); }
     let i = 0; typing = setInterval(() => { voice.textContent = text.slice(0, ++i); if (i >= text.length) { clearInterval(typing); done(); } }, 38);
   }
+  // hovering the phone lights it up and nudges the handset off the cradle
+  const hoverOn = () => { hoverTarget = 1; }, hoverOff = () => { hoverTarget = 0; };
+  phone.addEventListener('pointerenter', hoverOn); phone.addEventListener('pointerleave', hoverOff);
+  phone.addEventListener('focus', hoverOn); phone.addEventListener('blur', hoverOff);
   phone.addEventListener('click', () => {
     liftTarget = 1; answered = true; clearInterval(ringEvery);
     stopRing(); kick(1); callEl.hidden = false; bits.hidden = true; $('err').textContent = '';
@@ -683,7 +686,7 @@ body { background: var(--bg); color: var(--ice); font-family: var(--sans); overf
     r3.setPixelRatio(1); r3.setClearColor(0x000000, 0);
     const scene = new THREE.Scene();
     const cam = new THREE.PerspectiveCamera(30, 1.25, .1, 50); cam.position.set(0, 2.3, 6.4); cam.lookAt(0, .55, 0);
-    scene.add(new THREE.AmbientLight(0xffffff, .38));
+    const amb = new THREE.AmbientLight(0xffffff, .38); scene.add(amb);
     const key = new THREE.DirectionalLight(0xffffff, 2.3); key.position.set(-3, 5, 4); scene.add(key);
     const rim = new THREE.DirectionalLight(0xffffff, 2.2); rim.position.set(4, 2.5, -3); scene.add(rim);
     const fill = new THREE.PointLight(0xffffff, .7, 20); fill.position.set(2.5, 1, 4); scene.add(fill);
@@ -749,8 +752,8 @@ body { background: var(--bg); color: var(--ice); font-family: var(--sans); overf
     }
     let cw = 0, ch = 0;
     function setSize(w, h) { w = Math.max(64, Math.round(w)); h = Math.max(52, Math.round(h)); if (w === cw && h === ch) return; cw = w; ch = h; r3.setSize(w, h, false); cam.aspect = w / h; cam.updateProjectionMatrix(); }
-    let lastLift = -1;
-    function render(t, ring, lf) {
+    let lastLift = -1, lastHv = -1;
+    function render(t, ring, lf, hv) {
       const e = lf < .5 ? 2 * lf * lf : 1 - Math.pow(-2 * lf + 2, 2) / 2;
       root.rotation.y = -.5 + Math.sin(t * .4) * .28 + e * .5;
       root.rotation.z = ring ? Math.sin(t * 70) * .035 : 0;
@@ -759,7 +762,10 @@ body { background: var(--bg); color: var(--ice); font-family: var(--sans); overf
       handset.position.lerpVectors(rest.p, up.p, e);
       handset.rotation.set(rest.r.x + (up.r.x - rest.r.x) * e, rest.r.y + (up.r.y - rest.r.y) * e, rest.r.z + (up.r.z - rest.r.z) * e);
       if (ring) { handset.position.y += Math.abs(Math.sin(t * 41)) * .07; handset.rotation.z += Math.sin(t * 63) * .04; }
-      if (ring || Math.abs(lf - lastLift) > .001 || !cord) { rebuildCord(ring ? 1 : 0, t); lastLift = lf; }
+      const h = hv * (1 - e);
+      handset.position.y += h * (.32 + Math.sin(t * 2.2) * .03); handset.rotation.z -= h * .14;
+      amb.intensity = .38 + hv * .5; key.intensity = 2.3 + hv * 1.8; rim.intensity = 2.2 + hv * 1.4;
+      if (ring || Math.abs(lf - lastLift) > .001 || Math.abs(hv - lastHv) > .001 || hv > .01 || !cord) { rebuildCord(ring ? 1 : 0, t); lastLift = lf; lastHv = hv; }
       r3.render(scene, cam);
       return r3.domElement;
     }
@@ -831,13 +837,10 @@ body { background: var(--bg); color: var(--ice); font-family: var(--sans); overf
       }
     });
     if (hasLS) g.letterSpacing = '0px';
-    // go deeper + note
+    // go deeper
     const dp = $('deeper'), dr = rect(dp);
     g.font = sansAt(dp); if (hasLS) g.letterSpacing = (2.6 * S) + 'px';
     g.fillStyle = `rgba(214,236,243,${.35 + .45 * (0.5 + 0.5 * Math.sin(t * 1.8))})`; g.fillText('GO DEEPER...', dr.cx, dr.cy);
-    const nt = $('note'), nr = rect(nt);
-    g.font = sansAt(nt, 400); if (hasLS) g.letterSpacing = (1.4 * S) + 'px';
-    g.fillStyle = 'rgba(120,150,160,.45)'; g.fillText('PREVIEW · LINKS NOT CONNECTED YET', nr.cx, nr.cy);
     if (hasLS) g.letterSpacing = '0px';
     g.globalAlpha = 1;
 
@@ -846,9 +849,16 @@ body { background: var(--bg); color: var(--ice); font-family: var(--sans); overf
     const hw = Math.min(W * .55, 400 * S), hh = hw * .8;
     const pw = pr.w + (hw - pr.w) * e, ph = pr.h + (hh - pr.h) * e;
     const pcx = pr.cx + (W / 2 - pr.cx) * e, pcy = pr.cy + (H * .27 - pr.cy) * e;
+    const hv = hover * (1 - e);
+    if (hv > .01) {  // soft grainy halo behind it while hovered
+      const rg = g.createRadialGradient(pcx, pcy, 0, pcx, pcy, pw * .75);
+      rg.addColorStop(0, `rgba(235,245,248,${.16 * hv})`); rg.addColorStop(1, 'rgba(235,245,248,0)');
+      g.fillStyle = rg; g.fillRect(pcx - pw, pcy - pw, pw * 2, pw * 2);
+    }
     if (P) {
       P.setSize(hw, hh);
-      g.drawImage(P.render(reduce ? 0 : t, ringing && !reduce, lift), pcx - pw / 2, pcy - ph / 2, pw, ph);
+      const k = 1 + .08 * hv;
+      g.drawImage(P.render(reduce ? 0 : t, ringing && !reduce, lift, hover), pcx - pw * k / 2, pcy - ph * k / 2 - 3 * S * hv, pw * k, ph * k);
     } else {
       g.font = `700 ${13 * S}px "Helvetica Neue", Helvetica, Arial, sans-serif`; g.fillStyle = '#eafcff'; g.fillText('THE LINE', pcx, pcy);
     }
@@ -870,6 +880,7 @@ body { background: var(--bg); color: var(--ice); font-family: var(--sans); overf
     for (let i = 0; i < warp.length; i++) warp[i] = Math.max(0, warp[i] - dt * 1.5);
     readBass(dt);
     lift += (liftTarget - lift) * Math.min(1, dt * 4.5);
+    hover += (hoverTarget - hover) * Math.min(1, dt * 7);
     smx += (mx - smx) * .03; smy += (my - smy) * .03;
     depth += ((deep ? 1 : 0) - depth) * .05;
     drawUI(t);
