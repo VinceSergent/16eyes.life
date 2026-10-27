@@ -128,6 +128,9 @@ body { background: var(--bg); color: var(--ice); font-family: var(--sans); overf
 .beyond p { margin: 0; max-width: 34ch; font-size: 13px; line-height: 1.6; color: #b7cdd5; }
 .beyond button { background: none; border: 0; cursor: pointer; font-family: var(--sans); font-weight: 700; font-size: 11px; letter-spacing: .22em; color: #b7cdd5; text-transform: uppercase; }
 .beyond button:hover, .beyond button:focus-visible { color: var(--aqua); outline: none; }
+/* nothing but "loading" on screen; the way back stays for keyboards and screen readers (Esc works too) */
+.vh { position: absolute !important; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+body.deep .snd { visibility: hidden; }
 
 .toast {
   position: fixed; z-index: 30; left: 50%; transform: translateX(-50%);
@@ -183,10 +186,9 @@ body { background: var(--bg); color: var(--ice); font-family: var(--sans); overf
 </div>
 
 <section class="beyond" id="beyond" hidden>
-  <div class="big">loading world</div>
+  <div class="big">loading</div>
   <div class="bar"><i></i></div>
-  <p>The full 16eyes world opens here. It gets built next.</p>
-  <button id="back">&#9666; back to menu</button>
+  <button id="back" class="vh">back to menu</button>
 </section>
 
 <div class="call" id="call" hidden role="dialog" aria-modal="true" aria-labelledby="voice">
@@ -396,10 +398,11 @@ body { background: var(--bg); color: var(--ice); font-family: var(--sans); overf
   const stage = $('stage');
   $('deeper').addEventListener('click', () => {
     stopRing(); kick(1.4); tone([110], .5, .02, 'sawtooth');
-    setTimeout(() => { deep = true; stage.style.visibility = 'hidden'; beyond.hidden = false; $('back').focus(); }, reduce ? 200 : 450);
+    setTimeout(() => { deep = true; document.body.classList.add('deep'); stage.style.visibility = 'hidden'; beyond.hidden = false; $('back').focus(); }, reduce ? 200 : 450);
   });
+  beyond.addEventListener('keydown', e => { if (e.key === 'Escape') $('back').click(); });
   $('back').addEventListener('click', () => {
-    kick(1); deep = false; beyond.hidden = true; stage.style.visibility = ''; $('deeper').focus();
+    kick(1); deep = false; document.body.classList.remove('deep'); beyond.hidden = true; stage.style.visibility = ''; $('deeper').focus();
   });
 
   /* =====================================================================
@@ -797,7 +800,7 @@ body { background: var(--bg); color: var(--ice); font-family: var(--sans); overf
     g.save(); g.textAlign = 'center'; g.textBaseline = 'middle'; g.font = sansAt(sndBtn); if (hasLS) g.letterSpacing = (2.2 * S) + 'px';
     g.fillStyle = soundOn ? 'rgba(235,245,248,.9)' : 'rgba(170,190,198,.6)'; g.fillText(sndBtn.textContent.toUpperCase(), sb.cx, sb.cy);
     if (hasLS) g.letterSpacing = '0px'; g.restore();
-    if (deep) return;
+    if (deep) { g.clearRect(0, 0, W, H); return; }
     g.globalAlpha = 1 - lift * .92;
     // CD
     const d = rect($('disc'));
