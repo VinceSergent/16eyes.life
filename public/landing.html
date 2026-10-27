@@ -170,10 +170,10 @@ body { background: var(--bg); color: var(--ice); font-family: var(--sans); overf
   <div id="logoWrap"><h1 class="logo" id="logo">16eyes</h1></div>
 
   <ul class="menu" id="menu">
-    <li class="drift"><a href="#" data-link="Spotify" class="sel"><span class="lbl">Spotify</span></a></li>
-    <li class="drift"><a href="#" data-link="Apple Music"><span class="lbl">Apple Music</span></a></li>
-    <li class="drift"><a href="#" data-link="SoundCloud"><span class="lbl">SoundCloud</span></a></li>
-    <li class="drift"><a href="#" data-link="YouTube"><span class="lbl">YouTube</span></a></li>
+    <li class="drift"><a href="https://open.spotify.com/artist/4J29zSZ9THQppUWon80yok" target="_blank" rel="noopener" data-link="Spotify" class="sel"><span class="lbl">Spotify</span></a></li>
+    <li class="drift"><a href="https://music.apple.com/us/artist/16eyes/1805985611" target="_blank" rel="noopener" data-link="Apple Music"><span class="lbl">Apple Music</span></a></li>
+    <li class="drift"><a href="https://soundcloud.com/16eyes" target="_blank" rel="noopener" data-link="SoundCloud"><span class="lbl">SoundCloud</span></a></li>
+    <li class="drift"><a href="https://www.youtube.com/@16eyess" target="_blank" rel="noopener" data-link="YouTube"><span class="lbl">YouTube</span></a></li>
     <li class="drift"><a href="#" data-link="Shop"><span class="lbl">Shop</span></a></li>
   </ul>
 
@@ -330,8 +330,8 @@ body { background: var(--bg); color: var(--ice); font-family: var(--sans); overf
     if (e.key === 'ArrowUp') { e.preventDefault(); select(idx - 1); items[idx].focus(); }
   });
   document.querySelectorAll('[data-link]').forEach(a => a.addEventListener('click', e => {
-    e.preventDefault(); tone([660, 990], .08, .015); kick(.9);
-    say(a.dataset.link === 'Shop' ? 'shop opens when the merch drops' : `${a.dataset.link} link goes here`);
+    tone([660, 990], .08, .015); kick(.9);
+    if (a.dataset.link === 'Shop') { e.preventDefault(); say('shop opens when the merch drops'); }
   }));
 
   /* ---------- the line ---------- */
