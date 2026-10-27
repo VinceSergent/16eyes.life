@@ -431,7 +431,9 @@ body.deep .snd { visibility: hidden; }
 
   /* ---------- go deeper ---------- */
   const stage = $('stage');
+  const UNDER_CONSTRUCTION = true;   // flip to false when the world behind "go deeper" is ready
   $('deeper').addEventListener('click', () => {
+    if (UNDER_CONSTRUCTION) { kick(1.2); tone([110], .35, .02, 'sawtooth'); say('under construction. come back soon.'); return; }
     stopRing(); kick(1.4); tone([110], .5, .02, 'sawtooth');
     setTimeout(() => {
       deep = true; document.body.classList.add('deep'); stage.style.visibility = 'hidden'; beyond.hidden = false; $('back').focus();
