@@ -387,29 +387,27 @@ body.deep .snd { visibility: hidden; }
     typeOut('Got you. Stay by the phone. (Preview: number not saved)', () => setTimeout(hangUp, 2200));
   });
 
-  /* ---------- spin the disc: grab it and fling it; it eases back to its normal speed ---------- */
+  /* ---------- spin the disc like a coin: drag sideways and it turns around its vertical axis ---------- */
   const BASE_SPIN = Math.PI * 2 / 4.5, discEl = $('disc');
-  let cdAng = 0, cdVel = BASE_SPIN, grab = null, justSpun = false;
-  const angAt = e => { const r = discEl.getBoundingClientRect(); return Math.atan2(e.clientY - (r.top + r.height / 2), e.clientX - (r.left + r.width / 2)); };
+  let cdAng = 0, yaw = 0, yawVel = 0, grab = null, justSpun = false;
   discEl.addEventListener('pointerdown', e => {
     if (e.button) return;
-    grab = { a: angAt(e), t: performance.now(), x: e.clientX, y: e.clientY, moved: false };
+    grab = { x: e.clientX, y: e.clientY, lx: e.clientX, t: performance.now(), moved: false };
     discEl.classList.add('grabbing');
   });
   addEventListener('pointermove', e => {
     if (!grab) return;
-    const a = angAt(e), now = performance.now();
-    let da = a - grab.a; if (da > Math.PI) da -= Math.PI * 2; if (da < -Math.PI) da += Math.PI * 2;
     if (!grab.moved && Math.hypot(e.clientX - grab.x, e.clientY - grab.y) < 4) return;
     grab.moved = true;
-    const dt = Math.max(.008, (now - grab.t) / 1000);
-    cdAng += da;                                            // the disc follows the hand while held
-    cdVel += (Math.max(-70, Math.min(70, da / dt)) - cdVel) * .5;   // and remembers how fast it was moving
-    grab.a = a; grab.t = now;
+    const now = performance.now(), dt = Math.max(.008, (now - grab.t) / 1000);
+    const dYaw = (e.clientX - grab.lx) / discEl.offsetWidth * Math.PI;   // dragging across the disc = half a turn
+    yaw += dYaw;                                                          // it follows the hand while held
+    yawVel += (Math.max(-90, Math.min(90, dYaw / dt)) - yawVel) * .5;     // and remembers how fast the hand moved
+    grab.lx = e.clientX; grab.t = now;
   });
   const release = () => {
     if (!grab) return;
-    if (grab.moved) { if (performance.now() - grab.t > 90) cdVel = 0; kick(Math.min(1, Math.abs(cdVel) / 40)); justSpun = true; setTimeout(() => { justSpun = false; }, 0); }
+    if (grab.moved) { if (performance.now() - grab.t > 90) yawVel = 0; kick(Math.min(1, Math.abs(yawVel) / 30)); justSpun = true; setTimeout(() => { justSpun = false; }, 0); }
     grab = null; discEl.classList.remove('grabbing');
   };
   addEventListener('pointerup', release); addEventListener('pointercancel', release);
@@ -712,6 +710,31 @@ body.deep .snd { visibility: hidden; }
     }
   }
 
+  // the label side, seen mid-spin: matte white print, black type
+  function drawCDBack(cx, cy, R, ang, shift) {
+    const hole = R * .125, clearR = R * .27;
+    g.save();
+    g.beginPath(); g.arc(cx, cy, R, 0, Math.PI * 2); g.arc(cx, cy, hole, 0, Math.PI * 2, true); g.clip('evenodd');
+    const base = g.createRadialGradient(cx - R * (.3 + shift * .25), cy - R * .35, R * .1, cx, cy, R * 1.1);
+    base.addColorStop(0, '#f2f2f2'); base.addColorStop(.6, '#cfcfcf'); base.addColorStop(1, '#8e8e8e');
+    g.fillStyle = base; g.fillRect(cx - R, cy - R, R * 2, R * 2);
+    g.save(); g.beginPath(); g.arc(cx, cy, clearR, 0, Math.PI * 2); g.clip();
+    g.clearRect(cx - clearR, cy - clearR, clearR * 2, clearR * 2);
+    g.fillStyle = 'rgba(190,200,210,.18)'; g.fillRect(cx - clearR, cy - clearR, clearR * 2, clearR * 2);
+    g.restore();
+    g.lineWidth = Math.max(1, R * .01); g.strokeStyle = 'rgba(40,40,40,.5)';
+    g.beginPath(); g.arc(cx, cy, clearR, 0, Math.PI * 2); g.stroke();
+    g.translate(cx, cy); g.rotate(ang);
+    g.fillStyle = '#111'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.font = `700 ${R * .3}px "Helvetica Neue", Helvetica, Arial, sans-serif`; g.fillText('16eyes', 0, -R * .55);
+    g.font = `700 ${Math.max(5, R * .065)}px Helvetica, Arial, sans-serif`; if (hasLS) g.letterSpacing = (R * .02) + 'px';
+    g.fillText('HOUSTON TX', 0, R * .5); g.fillText('16EYES.LIFE', 0, R * .62);
+    if (hasLS) g.letterSpacing = '0px';
+    g.lineWidth = Math.max(1, R * .006); g.strokeStyle = 'rgba(0,0,0,.6)';
+    g.beginPath(); g.arc(0, 0, R * .94, 0, Math.PI * 2); g.stroke();
+    g.restore();
+  }
+
   const rect = el => { const r = el.getBoundingClientRect(); return { x: r.left * S, y: r.top * S, w: r.width * S, h: r.height * S, cx: (r.left + r.width / 2) * S, cy: (r.top + r.height / 2) * S }; };
   const sansAt = (el, w = 700) => `${w} ${parseFloat(getComputedStyle(el).fontSize) * S}px "Helvetica Neue", Helvetica, Arial, sans-serif`;
   const hasLS = 'letterSpacing' in g;
@@ -842,7 +865,16 @@ body.deep .snd { visibility: hidden; }
     // a slight wobble on its axis, so the disc catches light from changing angles
     const tilt = reduce ? 1 : 1 - .05 * (.5 + .5 * Math.sin(t * .47));
     g.save(); g.translate(d.cx, d.cy); g.rotate(Math.sin(t * .23) * .25); g.scale(tilt, 1); g.rotate(-Math.sin(t * .23) * .25); g.translate(-d.cx, -d.cy);
-    drawCD(d.cx, d.cy, d.w / 2, cdAng, Math.sin(t * .35) * .6 + Math.sin(t * .13) * .3 - .2);
+    const cosY = Math.cos(yaw), facing = cosY >= 0, sx = Math.max(.025, Math.abs(cosY));
+    g.translate(d.cx, d.cy); g.scale(sx, 1); g.translate(-d.cx, -d.cy);
+    const lightShift = Math.sin(yaw) * 1.2;                  // reflections slide as it turns
+    if (facing) drawCD(d.cx, d.cy, d.w / 2, cdAng, Math.sin(t * .35) * .6 + Math.sin(t * .13) * .3 - .2 + lightShift);
+    else drawCDBack(d.cx, d.cy, d.w / 2, cdAng, lightShift);
+    if (sx < .35) {                                          // edge-on: the disc's rim catches the light
+      g.globalCompositeOperation = 'screen';
+      g.fillStyle = `rgba(255,255,255,${(.35 - sx) * 2})`; g.fillRect(d.cx - d.w / 2, d.cy - d.w / 2, d.w, d.w);
+      g.globalCompositeOperation = 'source-over';
+    }
     g.restore();
     // logo + sweeping scan line
     if (logoImg) {
@@ -917,9 +949,12 @@ body.deep .snd { visibility: hidden; }
     for (let i = 0; i < warp.length; i++) warp[i] = Math.max(0, warp[i] - dt * 1.5);
     readBass(dt);
     lift += (liftTarget - lift) * Math.min(1, dt * 4.5);
-    if (!grab || !grab.moved) {                              // free spin, settling back to the normal speed
-      cdVel += ((reduce ? 0 : BASE_SPIN) - cdVel) * Math.min(1, dt * .45);
-      cdAng += cdVel * dt;
+    if (!reduce) cdAng += BASE_SPIN * dt;
+    if (!grab || !grab.moved) {
+      // coasting: friction slows the spin, then a soft spring settles it face-up again
+      yawVel *= Math.exp(-dt * .7);
+      if (Math.abs(yawVel) < 2.5) { const home = Math.round(yaw / (Math.PI * 2)) * Math.PI * 2; yawVel += (home - yaw) * dt * 14; yawVel *= Math.exp(-dt * 3.2); }
+      yaw += yawVel * dt;
     }
     hover += (hoverTarget - hover) * Math.min(1, dt * 7);
     smx += (mx - smx) * .03; smy += (my - smy) * .03;
