@@ -398,12 +398,18 @@ body.deep .snd { visibility: hidden; }
   const stage = $('stage');
   $('deeper').addEventListener('click', () => {
     stopRing(); kick(1.4); tone([110], .5, .02, 'sawtooth');
-    setTimeout(() => { deep = true; document.body.classList.add('deep'); stage.style.visibility = 'hidden'; beyond.hidden = false; $('back').focus(); }, reduce ? 200 : 450);
+    setTimeout(() => {
+      deep = true; document.body.classList.add('deep'); stage.style.visibility = 'hidden'; beyond.hidden = false; $('back').focus();
+      try { history.pushState({ deep: 1 }, ''); } catch (e) {}   // so the phone's back button returns to the menu
+    }, reduce ? 200 : 450);
   });
-  beyond.addEventListener('keydown', e => { if (e.key === 'Escape') $('back').click(); });
-  $('back').addEventListener('click', () => {
+  function leaveDeep() {
+    if (!deep) return;
     kick(1); deep = false; document.body.classList.remove('deep'); beyond.hidden = true; stage.style.visibility = ''; $('deeper').focus();
-  });
+  }
+  addEventListener('popstate', leaveDeep);
+  beyond.addEventListener('keydown', e => { if (e.key === 'Escape') $('back').click(); });
+  $('back').addEventListener('click', () => { if (history.state && history.state.deep) history.back(); else leaveDeep(); });
 
   /* =====================================================================
      RENDERER: the DOM is drawn into a 2D canvas, then pushed through a shader
