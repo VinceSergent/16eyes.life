@@ -71,14 +71,6 @@ body { background: var(--bg); color: var(--ice); font-family: var(--sans); overf
 .gl .stage .logo, .gl .stage .menu a, .gl .stage .menu button, .gl .stage .deeper, .gl .stage .note, .gl .stage .alert { color: transparent; }
 .gl .cd { visibility: hidden; }
 
-.snd {
-  position: fixed; z-index: 3; top: calc(14px + env(safe-area-inset-top, 0px)); right: max(16px, env(safe-area-inset-right, 0px));
-  background: none; border: 0; padding: 6px; cursor: pointer;
-  font-family: var(--sans); font-weight: 700; font-size: 10px; letter-spacing: .22em; text-transform: uppercase; color: var(--dim);
-}
-.snd:focus-visible { outline: 1px dotted #fff; outline-offset: 2px; }
-.gl .snd { color: transparent; }
-
 .phone3d { position: relative; display: block; width: 156px; height: 125px; margin-top: 4px; background: none; border: 0; padding: 0; cursor: pointer; }
 .phone3d .lbl { font-family: var(--sans); font-weight: 700; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--ice); }
 .phone3d:focus-visible { outline: 1px dotted #fff; outline-offset: 4px; }
@@ -132,7 +124,6 @@ body { background: var(--bg); color: var(--ice); font-family: var(--sans); overf
 .beyond button:hover, .beyond button:focus-visible { color: var(--aqua); outline: none; }
 /* nothing but "loading" on screen; the way back stays for keyboards and screen readers (Esc works too) */
 .vh { position: absolute !important; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-body.deep .snd { visibility: hidden; }
 
 .toast {
   position: fixed; z-index: 30; left: 50%; transform: translateX(-50%);
@@ -164,7 +155,6 @@ body.deep .snd { visibility: hidden; }
 </svg>
 
 <canvas id="gl" aria-hidden="true"></canvas>
-<button class="snd" id="snd" aria-pressed="false">sound off</button>
 
 <div class="stage" id="stage">
   <div class="disc-wrap" id="disc">
@@ -230,9 +220,11 @@ body.deep .snd { visibility: hidden; }
 
   /* ---------- sound ---------- */
   let ac = null;
-  const unlock = () => { if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} } };
-  addEventListener('pointerdown', unlock, { once: true });
-  addEventListener('keydown', unlock, { once: true });
+  const unlock = () => {
+    if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} }
+    if (ac && ac.state === 'suspended') ac.resume();
+  };
+  ['pointerdown', 'pointerup', 'touchend', 'keydown'].forEach(n => addEventListener(n, unlock, true));
   function tone(freqs, dur, vol, type = 'square') {
     if (!ac) return;
     const s = ac.currentTime;
@@ -260,70 +252,7 @@ body.deep .snd { visibility: hidden; }
     [lfo, ...oscs].forEach(o => { o.start(s0); o.stop(s0 + 1.05); });
   }
 
-  /* ---------- music: a slowed stand-in loop until the real track is dropped in ---------- */
-  let soundOn = false, music = null, analyser = null, freq = null, beat = 0, bass = 0, noiseBuf = null;
-  function kickAt(t, out) {
-    const o = ac.createOscillator(), gg = ac.createGain(); o.connect(gg); gg.connect(out);
-    o.frequency.setValueAtTime(115, t); o.frequency.exponentialRampToValueAtTime(36, t + .4);
-    gg.gain.setValueAtTime(.95, t); gg.gain.exponentialRampToValueAtTime(.001, t + 1.1);
-    o.start(t); o.stop(t + 1.15);
-  }
-  function snareAt(t, out) {
-    const n = ac.createBufferSource(); n.buffer = noiseBuf;
-    const bp = ac.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 1700; bp.Q.value = .8;
-    const gg = ac.createGain(); n.connect(bp); bp.connect(gg); gg.connect(out);
-    gg.gain.setValueAtTime(.22, t); gg.gain.exponentialRampToValueAtTime(.001, t + .28);
-    n.start(t); n.stop(t + .3);
-  }
-  function startMusic() {
-    unlock(); if (!ac) return;
-    if (ac.state === 'suspended') ac.resume();
-    if (!music) {
-      const out = ac.createGain(); out.gain.value = 0;
-      analyser = ac.createAnalyser(); analyser.fftSize = 512; analyser.smoothingTimeConstant = .5;
-      freq = new Uint8Array(analyser.frequencyBinCount);
-      out.connect(analyser); analyser.connect(ac.destination);
-      noiseBuf = ac.createBuffer(1, ac.sampleRate, ac.sampleRate);
-      const d = noiseBuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
-      const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 300; lp.connect(out);
-      [55, 55.35, 82.4].forEach((f, i) => { const o = ac.createOscillator(); o.type = i < 2 ? 'sawtooth' : 'sine'; o.frequency.value = f;
-        const gg = ac.createGain(); gg.gain.value = i < 2 ? .06 : .09; o.connect(gg); gg.connect(lp); o.start(); });
-      let next = ac.currentTime + .1, step = 0; const pat = [1, 0, 0, 1, 0, 0, 1, 0];
-      setInterval(() => { while (next < ac.currentTime + .3) { if (pat[step % 8]) kickAt(next, out); if (step % 8 === 4) snareAt(next, out); next += .46; step++; } }, 60);
-      music = { out };
-    }
-    music.out.gain.cancelScheduledValues(ac.currentTime); music.out.gain.setValueAtTime(music.out.gain.value, ac.currentTime);
-    music.out.gain.linearRampToValueAtTime(.85, ac.currentTime + 1.2);
-  }
-  function stopMusic() {
-    if (!music) return;
-    music.out.gain.cancelScheduledValues(ac.currentTime); music.out.gain.setValueAtTime(music.out.gain.value, ac.currentTime);
-    music.out.gain.linearRampToValueAtTime(0, ac.currentTime + .8);
-  }
-  function readBass(dt) {
-    let lv = 0;
-    if (analyser && soundOn) { analyser.getByteFrequencyData(freq); let s = 0; for (let i = 1; i < 8; i++) s += freq[i]; lv = s / (7 * 255); }
-    bass += (lv - bass) * (lv > bass ? .55 : .1);
-    beat = Math.min(1, Math.max(0, (bass - .25) * 1.6));
-  }
-  const sndBtn = $('snd');
-  function setSound(on) {
-    soundOn = on; on ? startMusic() : stopMusic();
-    sndBtn.textContent = on ? 'sound on' : 'sound off'; sndBtn.setAttribute('aria-pressed', on);
-  }
-  sndBtn.addEventListener('click', () => { autoDone = true; setSound(!soundOn); kick(.5); });
-
-  // play as soon as the browser allows: on arrival if it lets us, otherwise on the first touch anywhere
-  let autoDone = false;
-  const autoEvents = ['pointerup', 'touchend', 'keydown', 'click'];
-  function autoSound(e) {
-    if (autoDone || (e && e.target.closest && e.target.closest('#snd'))) return;   // the button handles itself
-    autoDone = true; autoEvents.forEach(n => removeEventListener(n, autoSound, true));
-    if (!soundOn) setSound(true);
-  }
-  autoEvents.forEach(n => addEventListener(n, autoSound, true));
-  unlock();
-  if (ac && ac.state === 'running') autoSound();
+  let beat = 0;   // the visuals pulse with this; stays 0 now that the music is gone
 
 
   const toast = $('toast');
@@ -877,10 +806,6 @@ body.deep .snd { visibility: hidden; }
 
   function drawUI(t) {
     g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, W, H);
-    const sb = rect(sndBtn);
-    g.save(); g.textAlign = 'center'; g.textBaseline = 'middle'; g.font = sansAt(sndBtn); if (hasLS) g.letterSpacing = (2.2 * S) + 'px';
-    g.fillStyle = soundOn ? 'rgba(235,245,248,.9)' : 'rgba(170,190,198,.6)'; g.fillText(sndBtn.textContent.toUpperCase(), sb.cx, sb.cy);
-    if (hasLS) g.letterSpacing = '0px'; g.restore();
     if (deep) { g.clearRect(0, 0, W, H); return; }
     g.globalAlpha = 1 - lift * .92;
     // CD
@@ -971,7 +896,6 @@ body.deep .snd { visibility: hidden; }
     if (!reduce && t > nextBurst) { kick(rnd(.15, .35)); nextBurst = t + rnd(5, 10); }
     glitch = Math.max(0, glitch - dt * 3.2);
     for (let i = 0; i < warp.length; i++) warp[i] = Math.max(0, warp[i] - dt * 1.5);
-    readBass(dt);
     lift += (liftTarget - lift) * Math.min(1, dt * 4.5);
     if (!reduce) cdAng += BASE_SPIN * dt;
     if (!grab || !grab.moved) {
