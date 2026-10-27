@@ -307,10 +307,23 @@ body.deep .snd { visibility: hidden; }
     beat = Math.min(1, Math.max(0, (bass - .25) * 1.6));
   }
   const sndBtn = $('snd');
-  sndBtn.addEventListener('click', () => {
-    soundOn = !soundOn; soundOn ? startMusic() : stopMusic(); kick(.5);
-    sndBtn.textContent = soundOn ? 'sound on' : 'sound off'; sndBtn.setAttribute('aria-pressed', soundOn);
-  });
+  function setSound(on) {
+    soundOn = on; on ? startMusic() : stopMusic();
+    sndBtn.textContent = on ? 'sound on' : 'sound off'; sndBtn.setAttribute('aria-pressed', on);
+  }
+  sndBtn.addEventListener('click', () => { autoDone = true; setSound(!soundOn); kick(.5); });
+
+  // play as soon as the browser allows: on arrival if it lets us, otherwise on the first touch anywhere
+  let autoDone = false;
+  const autoEvents = ['pointerup', 'touchend', 'keydown', 'click'];
+  function autoSound(e) {
+    if (autoDone || (e && e.target.closest && e.target.closest('#snd'))) return;   // the button handles itself
+    autoDone = true; autoEvents.forEach(n => removeEventListener(n, autoSound, true));
+    if (!soundOn) setSound(true);
+  }
+  autoEvents.forEach(n => addEventListener(n, autoSound, true));
+  unlock();
+  if (ac && ac.state === 'running') autoSound();
 
 
   const toast = $('toast');
