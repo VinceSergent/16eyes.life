@@ -210,7 +210,11 @@ input[type=range].v { writing-mode: vertical-lr; direction: rtl; width: 26px; he
   <!-- CRT TV -->
   <g class="obj" id="o-tv" data-open="tv" tabindex="0" role="button" aria-label="TV">
     <g class="art">
-      <line class="ln2" x1="40" y1="200" x2="24" y2="250"/><line class="ln2" x1="220" y1="200" x2="236" y2="250"/>
+      <rect class="ln" x="-10" y="206" width="450" height="124"/>
+      <line class="ln2" x1="215" y1="218" x2="215" y2="318"/><line class="ln2" x1="4" y1="246" x2="200" y2="246"/>
+      <circle class="ln2" cx="200" cy="282" r="3"/><circle class="ln2" cx="230" cy="282" r="3"/>
+      <line class="ln2" x1="0" y1="330" x2="0" y2="342"/><line class="ln2" x1="430" y1="330" x2="430" y2="342"/>
+      <rect class="ln" x="30" y="200" width="200" height="6"/>
       <rect class="ln" x="0" y="0" width="260" height="200" rx="16"/>
       <rect class="ln" x="20" y="20" width="182" height="150" rx="26"/>
       <image id="tvstatic" x="26" y="26" width="170" height="138" preserveAspectRatio="none" opacity=".55" style="clip-path: inset(0 round 22px)"/>
@@ -218,7 +222,7 @@ input[type=range].v { writing-mode: vertical-lr; direction: rtl; width: 26px; he
       <line class="ln2" x1="216" y1="122" x2="244" y2="122"/><line class="ln2" x1="216" y1="134" x2="244" y2="134"/><line class="ln2" x1="216" y1="146" x2="244" y2="146"/><line class="ln2" x1="216" y1="158" x2="244" y2="158"/>
       <line class="ln2" x1="110" y1="0" x2="70" y2="-62"/><line class="ln2" x1="130" y1="0" x2="176" y2="-58"/>
     </g>
-    <text class="lbl" x="130" y="282">TV</text>
+    <text class="lbl" x="130" y="376">TV</text>
   </g>
 
   <!-- locked door -->
@@ -239,14 +243,12 @@ input[type=range].v { writing-mode: vertical-lr; direction: rtl; width: 26px; he
   <!-- CD player on a cabinet -->
   <g class="obj" id="o-cd" data-open="cd" tabindex="0" role="button" aria-label="CD player">
     <g class="art">
-      <rect class="ln" x="0" y="80" width="220" height="140"/>
-      <line class="ln2" x1="110" y1="92" x2="110" y2="208"/><circle class="ln2" cx="98" cy="150" r="3"/><circle class="ln2" cx="122" cy="150" r="3"/>
       <rect class="ln" x="28" y="34" width="164" height="46" rx="18"/>
       <g class="spin"><circle class="ln" cx="96" cy="36" r="30"/><circle class="ln2" cx="96" cy="36" r="12"/><line class="ln2" x1="96" y1="10" x2="96" y2="22"/><circle class="fill" cx="96" cy="36" r="2.5"/></g>
       <rect class="ln2" x="140" y="48" width="38" height="12"/>
       <circle class="fill blink" cx="184" cy="68" r="2"/>
     </g>
-    <text class="lbl" x="110" y="252">cd player</text>
+    <text class="lbl" x="110" y="-14">cd player</text>
   </g>
 
   <!-- studio desk -->
@@ -353,10 +355,12 @@ input[type=range].v { writing-mode: vertical-lr; direction: rtl; width: 26px; he
   /* ---------- the room's walls, drawn for the current shape of the screen ---------- */
   const room = $('room'), shell = $('shell'), bulb = $('bulb');
   const LAYOUT = {
-    land: { vb: [1600, 1000], wall: [300, 130, 1300, 640],
-      at: { 'o-tv': [400, 372, 1], 'o-door': [1040, 250, 1], 'o-cd': [700, 418, 1], 'o-desk': [50, 668, .92], 'o-am': [1180, 640, .95], 'o-book': [660, 820, 1], 'o-nb': [1330, 830, .9] } },
-    port: { vb: [1000, 2000], wall: [100, 180, 900, 820],
-      at: { 'o-tv': [140, 540, 1.1], 'o-door': [650, 430, 1], 'o-cd': [590, 900, 1.15], 'o-desk': [40, 1330, 1.6], 'o-am': [90, 900, 1.1], 'o-book': [520, 1760, 1.25], 'o-nb': [110, 1790, 1.1] } },
+    // one cramped room: desk against the wall, TV on a low cabinet with the CD player beside it,
+    // the answering machine by the door, notebook and photo book on the floor
+    land: { vb: [1600, 1000], wall: [290, 140, 1390, 640],
+      at: { 'o-desk': [330, 452, .8], 'o-tv': [760, 343, .9], 'o-cd': [990, 468, .8], 'o-door': [1180, 289, .9], 'o-am': [1160, 650, .85], 'o-nb': [420, 700, .8], 'o-book': [700, 720, .95] } },
+    port: { vb: [1000, 1900], wall: [90, 180, 910, 820],
+      at: { 'o-tv': [110, 520, .85], 'o-cd': [318, 642, .7], 'o-door': [620, 430, .95], 'o-desk': [70, 930, 1.5], 'o-nb': [110, 1400, 1.05], 'o-am': [590, 1360, 1.05], 'o-book': [330, 1620, 1.15] } },
   };
   // the floor point each object stands on and how wide it is, for its shadow
   const objs = [...document.querySelectorAll('.obj')];
