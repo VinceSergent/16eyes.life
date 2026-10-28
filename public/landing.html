@@ -287,13 +287,13 @@ body { background: var(--bg); color: var(--ice); font-family: var(--sans); overf
 
   /* ---------- the line ---------- */
   const phone = $('phone'), alertEl = $('alert');
-  let loop, stopT, ringEvery;
+  let loop, stopT, ringEvery, ringT0 = 0;
   // once someone has picked up, the phone stays quiet for the rest of the visit (and for good once they leave a number)
   let answered = false;
   try { answered = localStorage.getItem('16eyes-line') === 'joined'; } catch (e) {}
   function ring() {
     if (answered || ringing || !callEl.hidden || deep) return;
-    ringing = true; alertEl.hidden = false; kick(.3);
+    ringing = true; ringT0 = performance.now(); alertEl.hidden = false; kick(.3);
     ringTone(); loop = setInterval(() => { ringTone(); kick(.2); }, 3000); stopT = setTimeout(stopRing, 8800);
   }
   function stopRing() { ringing = false; alertEl.hidden = true; clearInterval(loop); clearTimeout(stopT); }
@@ -766,7 +766,7 @@ body { background: var(--bg); color: var(--ice); font-family: var(--sans); overf
     let cw = 0, ch = 0;
     function setSize(w, h) { w = Math.max(64, Math.round(w)); h = Math.max(52, Math.round(h)); if (w === cw && h === ch) return; cw = w; ch = h; r3.setSize(w, h, false); cam.aspect = w / h; cam.updateProjectionMatrix(); }
     let lastLift = -1, lastHv = -1;
-    function render(t, ring, lf, hv) {
+    function render(t, ring, lf, hv, gl = 0) {
       const e = lf < .5 ? 2 * lf * lf : 1 - Math.pow(-2 * lf + 2, 2) / 2;
       root.rotation.y = -.5 + Math.sin(t * .4) * .28 + e * .5;
       root.rotation.z = ring ? Math.sin(t * 70) * .035 : 0;
@@ -777,7 +777,8 @@ body { background: var(--bg); color: var(--ice); font-family: var(--sans); overf
       if (ring) { handset.position.y += Math.abs(Math.sin(t * 41)) * .07; handset.rotation.z += Math.sin(t * 63) * .04; }
       const h = hv * (1 - e);
       handset.position.y += h * (.32 + Math.sin(t * 2.2) * .03); handset.rotation.z -= h * .14;
-      amb.intensity = .38 + hv * .5; key.intensity = 2.3 + hv * 1.8; rim.intensity = 2.2 + hv * 1.4;
+      const li = Math.max(hv, gl);
+      amb.intensity = .38 + li * .5; key.intensity = 2.3 + li * 1.8; rim.intensity = 2.2 + li * 1.4;
       if (ring || Math.abs(lf - lastLift) > .001 || Math.abs(hv - lastHv) > .001 || hv > .01 || !cord) { rebuildCord(ring ? 1 : 0, t); lastLift = lf; lastHv = hv; }
       r3.render(scene, cam);
       return r3.domElement;
@@ -868,15 +869,19 @@ body { background: var(--bg); color: var(--ice); font-family: var(--sans); overf
     const pw = pr.w + (hw - pr.w) * e, ph = pr.h + (hh - pr.h) * e;
     const pcx = pr.cx + (W / 2 - pr.cx) * e, pcy = pr.cy + (H * .27 - pr.cy) * e;
     const hv = hover * (1 - e);
-    if (hv > .01) {  // soft grainy halo behind it while hovered
+    // while it rings, a soft glow swells with each ring (in step with the bell, every 3 s)
+    let rgl = 0;
+    if (ringing && lift < .05) { const ph = ((performance.now() - ringT0) / 1000) % 3; rgl = ph < 1.2 ? Math.pow(Math.sin(Math.PI * ph / 1.2), 2) : 0; }
+    const glow = Math.max(hv, rgl);
+    if (glow > .01) {  // soft grainy halo behind it while hovered or ringing
       const rg = g.createRadialGradient(pcx, pcy, 0, pcx, pcy, pw * .75);
-      rg.addColorStop(0, `rgba(235,245,248,${.16 * hv})`); rg.addColorStop(1, 'rgba(235,245,248,0)');
+      rg.addColorStop(0, `rgba(235,245,248,${.16 * glow})`); rg.addColorStop(1, 'rgba(235,245,248,0)');
       g.fillStyle = rg; g.fillRect(pcx - pw, pcy - pw, pw * 2, pw * 2);
     }
     if (P) {
       P.setSize(hw, hh);
       const k = 1 + .08 * hv;
-      g.drawImage(P.render(reduce ? 0 : t, ringing && !reduce, lift, hover), pcx - pw * k / 2, pcy - ph * k / 2 - 3 * S * hv, pw * k, ph * k);
+      g.drawImage(P.render(reduce ? 0 : t, ringing && !reduce, lift, hover, rgl), pcx - pw * k / 2, pcy - ph * k / 2 - 3 * S * hv, pw * k, ph * k);
     } else {
       g.font = `700 ${13 * S}px "Helvetica Neue", Helvetica, Arial, sans-serif`; g.fillStyle = '#eafcff'; g.fillText('THE LINE', pcx, pcy);
     }
