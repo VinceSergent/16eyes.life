@@ -373,15 +373,16 @@ body { background: var(--bg); color: var(--ice); font-family: var(--sans); overf
 
   /* ---------- go deeper ---------- */
   const stage = $('stage');
-  const UNDER_CONSTRUCTION = true;   // flip to false when the world behind "go deeper" is ready
+  const UNDER_CONSTRUCTION = false;   // true puts the "under construction" stop back in front of the room
   $('deeper').addEventListener('click', () => {
     if (UNDER_CONSTRUCTION) { kick(1.2); tone([110], .35, .02, 'sawtooth'); say('under construction. come back soon.'); return; }
     stopRing(); kick(1.4); tone([110], .5, .02, 'sawtooth');
     setTimeout(() => {
       deep = true; document.body.classList.add('deep'); stage.style.visibility = 'hidden'; beyond.hidden = false; $('back').focus();
-      try { history.pushState({ deep: 1 }, ''); } catch (e) {}   // so the phone's back button returns to the menu
+      setTimeout(() => { if (deep) location.href = '/deep'; }, reduce ? 300 : 1100);   // the room (password first, until it opens to everyone)
     }, reduce ? 200 : 450);
   });
+  addEventListener('pageshow', e => { if (e.persisted) leaveDeep(); });   // coming back from the room with the back button
   function leaveDeep() {
     if (!deep) return;
     kick(1); deep = false; document.body.classList.remove('deep'); beyond.hidden = true; stage.style.visibility = ''; $('deeper').focus();
