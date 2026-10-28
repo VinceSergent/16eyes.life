@@ -21,25 +21,30 @@ body { background: var(--bg); color: var(--ink); font-family: var(--sans); overf
 button { font-family: var(--sans); }
 
 /* screen texture over everything */
-#grain { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 50; pointer-events: none; opacity: .09; mix-blend-mode: screen; }
+#grain { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 50; pointer-events: none; opacity: .13; mix-blend-mode: screen; }
 .lines { position: fixed; inset: 0; z-index: 51; pointer-events: none; background: repeating-linear-gradient(0deg, rgba(0,0,0,.3) 0 1px, transparent 1px 3px); }
 .vig { position: fixed; inset: 0; z-index: 52; pointer-events: none; background: radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,.9) 100%); }
 
 /* the room */
-#room { position: fixed; inset: 0; width: 100%; height: 100%; display: block; animation: power 1.4s ease-out both; }
+#world { position: fixed; inset: 0; animation: power 1.4s ease-out both; }
+#world svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+#room { pointer-events: none; } #room .obj, #fx #pend { pointer-events: all; }
 @keyframes power { 0% { opacity: 0; transform: scaleY(.01); filter: brightness(3); } 35% { opacity: 1; transform: scaleY(.01); } 65% { transform: scaleY(1); filter: brightness(1.6) blur(1px); } 100% { filter: none; } }
-#room .wall { fill: none; stroke: #2e2e2e; stroke-width: 1.4; }
-#room .wall.soft { stroke: #191919; }
-#room .flicker { animation: flick 7s infinite; }
-@keyframes flick { 0%, 100% { opacity: 1; } 41% { opacity: 1; } 42% { opacity: .55; } 43% { opacity: 1; } 44% { opacity: .7; } 45% { opacity: 1; } }
+#room .wall, #bg .wall { fill: none; stroke: #3a3a3a; stroke-width: 1.4; }
+#bg .wall.soft { stroke: #222; }
+#pend { cursor: grab; }
+/* the bulb's light: everything far from it falls into the dark (positions set by the light loop) */
+#dark { position: fixed; inset: 0; z-index: 5; pointer-events: none;
+  background: radial-gradient(circle at var(--lx, 50%) var(--ly, 20%), rgba(0,0,0,calc(var(--k, 0) * .9)) 0, rgba(0,0,0,calc(.1 + var(--k, 0) * .65)) var(--r1, 260px), rgba(0,0,0,calc(.5 + var(--k, 0) * .4)) var(--r2, 900px)); }
+#film { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 49; pointer-events: none; }
 .obj { cursor: pointer; outline: none; }
-.obj .art { transition: transform .28s cubic-bezier(.2,.8,.2,1), filter .28s; transform-box: fill-box; transform-origin: center bottom; }
+.obj .art { transition: transform .28s cubic-bezier(.2,.8,.2,1); transform-box: fill-box; transform-origin: center bottom; filter: url(#rough); }
 .obj .art * { vector-effect: non-scaling-stroke; }
-.obj .ln { fill: #050505; stroke: var(--ink); stroke-width: 1.6; stroke-linejoin: round; stroke-linecap: round; }
+.obj .ln { fill: #141414; stroke: #dedede; stroke-width: 1.7; stroke-linejoin: round; stroke-linecap: round; }
 .obj .ln2 { fill: none; stroke: #9a9a9a; stroke-width: 1.1; stroke-linecap: round; }
 .obj .fill { fill: var(--ink); stroke: none; }
 .obj .lbl { fill: var(--ink); font: 700 13px var(--sans); letter-spacing: .26em; text-transform: uppercase; text-anchor: middle; opacity: 0; transition: opacity .25s; pointer-events: none; }
-.obj:hover .art, .obj:focus-visible .art { transform: translateY(-7px); filter: drop-shadow(0 0 7px rgba(255,255,255,.55)); }
+.obj:hover .art, .obj:focus-visible .art { transform: translateY(-7px); filter: url(#rough) drop-shadow(0 0 7px rgba(255,255,255,.55)); }
 .obj:hover .lbl, .obj:focus-visible .lbl { opacity: 1; }
 @media (hover: none) { .obj .lbl { opacity: .75; } }
 .blink { animation: blink 1.1s steps(1) infinite; }
@@ -159,19 +164,48 @@ input[type=range].v { writing-mode: vertical-lr; direction: rtl; width: 26px; he
 </head>
 <body>
 <canvas id="grain" aria-hidden="true"></canvas>
+<canvas id="film" aria-hidden="true"></canvas>
+<div id="dark" aria-hidden="true"></div>
 <div class="lines" aria-hidden="true"></div><div class="vig" aria-hidden="true"></div>
 
 <a class="hud" id="home" href="/">← 16eyes</a>
 <a class="hud" id="fill" href="/deep/upload">fill the room</a>
 <div class="hud" id="hint">pick something up</div>
 
-<svg id="room" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid meet" aria-label="The room">
+<div id="world">
+<!-- three layers: the still room, the moving light and shadows, then the objects (so the light doesn't redraw the grime) -->
+<svg id="bg" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
   <defs>
     <radialGradient id="glow"><stop offset="0" stop-color="#fff" stop-opacity=".22"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
     <linearGradient id="leak" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".9"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
+    <radialGradient id="shade"><stop offset="0" stop-color="#000" stop-opacity=".95"/><stop offset=".6" stop-color="#000" stop-opacity=".6"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient>
+    <radialGradient id="bglow"><stop offset="0" stop-color="#fff" stop-opacity=".5"/><stop offset=".25" stop-color="#fff" stop-opacity=".14"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+    <linearGradient id="drip" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#000" stop-opacity=".75"/><stop offset="1" stop-color="#000" stop-opacity="0"/></linearGradient>
+    <!-- worn, hand-drawn lines: a slight wobble, then speckles eaten out of them -->
+    <filter id="rough" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="7" result="w"/>
+      <feDisplacementMap in="SourceGraphic" in2="w" scale="4" xChannelSelector="R" yChannelSelector="G" result="d"/>
+      <feTurbulence type="fractalNoise" baseFrequency="0.75" numOctaves="2" seed="2" result="g"/>
+      <feColorMatrix in="g" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -1.3 1.3" result="ga"/>
+      <feComposite in="d" in2="ga" operator="in"/>
+    </filter>
+    <!-- damp stains and soot on the walls and floor -->
+    <filter id="stain" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.004 0.009" numOctaves="3" seed="11"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -4 2.15"/>
+    </filter>
+    <filter id="grit" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="1" seed="5"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 -9 4.2"/>
+    </filter>
   </defs>
   <g id="shell"></g>
-  <g id="bulb" class="flicker"></g>
+</svg>
+<svg id="fx" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+  <g id="shadows"></g>
+  <g id="bulb"></g>
+</svg>
+<svg id="room" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid meet" aria-label="The room">
 
   <!-- CRT TV -->
   <g class="obj" id="o-tv" data-open="tv" tabindex="0" role="button" aria-label="TV">
@@ -267,6 +301,7 @@ input[type=range].v { writing-mode: vertical-lr; direction: rtl; width: 26px; he
     <text class="lbl" x="90" y="186">notebook</text>
   </g>
 </svg>
+</div>
 
 <div id="panels"></div>
 
@@ -323,31 +358,163 @@ input[type=range].v { writing-mode: vertical-lr; direction: rtl; width: 26px; he
     port: { vb: [1000, 2000], wall: [100, 180, 900, 820],
       at: { 'o-tv': [140, 540, 1.1], 'o-door': [650, 430, 1], 'o-cd': [590, 900, 1.15], 'o-desk': [40, 1330, 1.6], 'o-am': [90, 900, 1.1], 'o-book': [520, 1760, 1.25], 'o-nb': [110, 1790, 1.1] } },
   };
+  // the floor point each object stands on and how wide it is, for its shadow
+  const objs = [...document.querySelectorAll('.obj')];
+  // an invisible box behind each object, so a tap anywhere on it counts (not just on its lines)
+  const base = {};
+  objs.forEach(o => {
+    const art = o.querySelector('.art'), bb = art.getBBox();
+    art.insertBefore(el('rect', { x: bb.x - 8, y: bb.y - 8, width: bb.width + 16, height: bb.height + 16, fill: 'transparent', stroke: 'none' }), art.firstChild);
+    base[o.id] = { x: bb.x + bb.width / 2, y: bb.y + bb.height, w: bb.width };
+  });
+
+  let L = LAYOUT.land, pivot = { x: 800, y: 0 }, cordLen = 200;
+  let swingA = .16, swingV = 0, inten = 1, pool = null, poolY = 0;
+  const shades = {};
+  const panelOpen = () => !!document.querySelector('#panels .panel');
   function drawShell() {
-    const L = innerWidth / innerHeight < .85 ? LAYOUT.port : LAYOUT.land;
-    const [W, H] = L.vb, [x0, y0, x1, y1] = L.wall;
-    room.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    L = innerWidth / innerHeight < .85 ? LAYOUT.port : LAYOUT.land;
+    const [W, H] = L.vb, [x0, y0, x1, y1] = L.wall, ww = x1 - x0, wh = y1 - y0;
+    ['bg', 'fx', 'room'].forEach(id => $(id).setAttribute('viewBox', `0 0 ${W} ${H}`));
     shell.innerHTML = '';
-    el('rect', { x: x0, y: y0, width: x1 - x0, height: y1 - y0, class: 'wall' }, shell);
-    [[0, 0, x0, y0], [W, 0, x1, y0], [0, H, x0, y1], [W, H, x1, y1]].forEach(([a, b, c, d]) => el('line', { x1: a, y1: b, x2: c, y2: d, class: 'wall' }, shell));
+    const poly = (pts, fill) => el('polygon', { points: pts.map(p => p.join(',')).join(' '), fill }, shell);
+    poly([[0, 0], [W, 0], [x1, y0], [x0, y0]], '#0c0c0c');            // ceiling
+    poly([[0, 0], [x0, y0], [x0, y1], [0, H]], '#171717');            // left wall
+    poly([[W, 0], [x1, y0], [x1, y1], [W, H]], '#151515');            // right wall
+    el('rect', { x: x0, y: y0, width: ww, height: wh, fill: '#242424' }, shell);   // back wall
+    poly([[x0, y1], [x1, y1], [W, H], [0, H]], '#131313');            // floor
+    // grime over the surfaces: damp stains, then grit
+    el('rect', { x: 0, y: 0, width: W, height: H, filter: 'url(#stain)', opacity: .75 }, shell);
+    el('rect', { x: 0, y: 0, width: W, height: H, filter: 'url(#grit)', opacity: .08 }, shell);
+    // drips running down the back wall from the ceiling
+    let seed = 41; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    for (let i = 0; i < 26; i++) { const x = x0 + rnd() * ww, len = wh * (.08 + rnd() * .45); el('rect', { x, y: y0, width: 1 + rnd() * 3, height: len, fill: 'url(#drip)', opacity: .35 + rnd() * .5 }, shell); }
+    // a torn poster, taped up crooked
+    const px = x0 + ww * .07, py = y0 + wh * .12, pw = Math.min(ww * .13, 150), ph = pw * 1.42;
+    const poster = el('g', { transform: `rotate(-3 ${px + pw / 2} ${py + ph / 2})` }, shell);
+    el('rect', { x: px, y: py, width: pw, height: ph, fill: '#2a2a2a', stroke: '#333' }, poster);
+    el('text', { x: px + pw * .1, y: py + ph * .3, fill: '#4a4a4a', style: `font: 700 ${pw * .22}px var(--sans); letter-spacing: -.03em` }, poster).textContent = '16eyes';
+    el('rect', { x: px + pw * .1, y: py + ph * .4, width: pw * .8, height: ph * .45, fill: '#202020' }, poster);
+    el('circle', { cx: px + pw * .5, cy: py + ph * .62, r: pw * .14, fill: '#3a3a3a' }, poster);
+    el('polygon', { points: `${px + pw},${py + ph} ${px + pw * .62},${py + ph} ${px + pw},${py + ph * .8}`, fill: '#1b1b1b' }, poster);   // torn corner
+    [[px - 6, py - 4], [px + pw - 14, py - 6]].forEach(([tx, ty]) => el('rect', { x: tx, y: ty, width: 20, height: 9, fill: '#555', opacity: .6, transform: `rotate(${rnd() * 30 - 15} ${tx} ${ty})` }, poster));
+    // a crack from the ceiling corner, a socket and its cable
+    let cx = x1 - ww * .04, cy = y0, d = `M${cx} ${cy}`;
+    for (let i = 0; i < 9; i++) { cx += (rnd() - .6) * 30; cy += 18 + rnd() * 26; d += ` L${cx.toFixed(1)} ${cy.toFixed(1)}`; }
+    el('path', { d, fill: 'none', stroke: '#060606', 'stroke-width': 2 }, shell);
+    el('path', { d, fill: 'none', stroke: '#2e2e2e', 'stroke-width': .8, transform: 'translate(1.5 1)' }, shell);
+    el('rect', { x: x0 + ww * .55, y: y1 - wh * .16, width: 16, height: 24, rx: 2, fill: '#141414', stroke: '#333' }, shell);
+    el('path', { d: `M${x0 + ww * .55 + 8} ${y1 - wh * .16 + 24} q -6 40 -60 ${wh * .16 - 10} t -120 30`, fill: 'none', stroke: '#2a2a2a', 'stroke-width': 2.2 }, shell);
+    // baseboard and room edges
+    el('line', { x1: x0, y1: y1 - 12, x2: x1, y2: y1 - 12, class: 'wall' }, shell);
+    el('rect', { x: x0, y: y0, width: ww, height: wh, class: 'wall' }, shell);
+    [[0, 0, x0, y0], [W, 0, x1, y0], [0, H, x0, y1], [W, H, x1, y1]].forEach(([a, b, c, e]) => el('line', { x1: a, y1: b, x2: c, y2: e, class: 'wall' }, shell));
     for (let i = 1; i < 9; i++) {   // floorboards running toward the back wall
-      const fx = x0 + (x1 - x0) * i / 9, bx = (fx - W / 2) * 2.6 + W / 2;
+      const fx = x0 + ww * i / 9, bx = (fx - W / 2) * 2.6 + W / 2;
       el('line', { x1: fx, y1: y1, x2: bx, y2: H, class: 'wall soft' }, shell);
     }
     for (let i = 1; i < 4; i++) { const k = Math.pow(i / 4, 1.6), y = y1 + (H - y1) * k, xl = x0 - x0 * k, xr = x1 + (W - x1) * k; el('line', { x1: xl, y1: y, x2: xr, y2: y, class: 'wall soft' }, shell); }
+
+    // the bulb on its cord, hung from the ceiling
     bulb.innerHTML = '';
-    const bx = W / 2, by = y0 + 70;
-    el('circle', { cx: bx, cy: by, r: 260, fill: 'url(#glow)' }, bulb);
-    el('line', { x1: bx, y1: 0, x2: bx, y2: by - 14, stroke: '#666', 'stroke-width': 1.2 }, bulb);
-    el('circle', { cx: bx, cy: by, r: 12, fill: '#f2f2f2' }, bulb);
-    for (const id in L.at) { const [x, y, k] = L.at[id]; $(id).setAttribute('transform', `translate(${x} ${y}) scale(${k})`); }
+    pivot = { x: W / 2, y: 0 }; cordLen = y0 + 70;
+    const g = el('g', { id: 'pend' }, bulb);
+    el('circle', { cx: pivot.x, cy: cordLen, r: 300, fill: 'url(#bglow)', id: 'halo' }, g);
+    el('line', { x1: pivot.x, y1: 0, x2: pivot.x, y2: cordLen - 18, stroke: '#5a5a5a', 'stroke-width': 1.4 }, g);
+    el('rect', { x: pivot.x - 7, y: cordLen - 26, width: 14, height: 14, fill: '#2a2a2a', stroke: '#444' }, g);
+    el('circle', { cx: pivot.x, cy: cordLen, r: 12, fill: '#f4f4f4', id: 'bulbglass' }, g);
+    el('circle', { cx: pivot.x, cy: cordLen, r: 40, fill: 'transparent' }, g);   // easier to grab
+    g.addEventListener('pointerdown', () => { swingV += (swingV >= 0 ? .55 : -.55); tone(220, .04, .03, 'triangle'); crackle(.08, .03); });
+
+    // a soft shadow pool under every object; the light loop moves them (and the bulb's light on the floor)
+    $('shadows').innerHTML = '';
+    pool = el('ellipse', { fill: 'url(#bglow)', rx: ww * .42, ry: (H - y1) * .38 }, $('shadows'));
+    poolY = y1 + (H - y1) * .42;
+    for (const id in L.at) {
+      const [x, y, k] = L.at[id], b = base[id];
+      $(id).setAttribute('transform', `translate(${x} ${y}) scale(${k})`);
+      const pos = { x: x + b.x * k, y: y + b.y * k, w: b.w * k };
+      shades[id] = { pos, contact: el('ellipse', { fill: 'url(#shade)' }, $('shadows')), cast: el('ellipse', { fill: 'url(#shade)' }, $('shadows')) };
+    }
   }
   drawShell(); addEventListener('resize', drawShell);
-  // an invisible box behind each object, so a tap anywhere on it counts (not just on its lines)
-  document.querySelectorAll('.obj').forEach(o => {
-    const art = o.querySelector('.art'), bb = art.getBBox();
-    art.insertBefore(el('rect', { x: bb.x - 8, y: bb.y - 8, width: bb.width + 16, height: bb.height + 16, fill: 'transparent', stroke: 'none' }), art.firstChild);
-  });
+
+  /* ---------- the bulb: swings on its cord and flickers; its light and the shadows follow it ---------- */
+  let burst = [], nextBurst = performance.now() + 2500, lastT = performance.now();
+  const darkEl = $('dark'), world = $('world');
+  function burstPattern() {
+    const p = [];
+    if (Math.random() < .18) p.push([.3, 120], [1, 60], [.25, 1600 + Math.random() * 1500]);   // a brownout
+    const n = 2 + (Math.random() * 6 | 0);
+    for (let i = 0; i < n; i++) p.push([Math.random() < .5 ? .05 + Math.random() * .2 : .7 + Math.random() * .3, 30 + Math.random() * 120]);
+    return p;
+  }
+  function light(now) {
+    const dt = Math.min(.05, (now - lastT) / 1000); lastT = now;
+    if (!reduce) {
+      // a pendulum that never quite settles
+      const acc = -3.9 * Math.sin(swingA) - .08 * swingV;
+      swingV += acc * dt; swingA += swingV * dt;
+      const E = .5 * swingV * swingV + 3.9 * (1 - Math.cos(swingA));
+      if (E < .045 && Math.abs(swingV) > .02) swingV *= 1 + dt * .6;
+      if (E < .001) swingV += .05;
+      // flicker: a steady hum, then now and then a stutter or a brownout
+      if (!burst.length && now > nextBurst) { burst = burstPattern(); burst.t = now; nextBurst = now + 2500 + Math.random() * 7000; }
+      if (burst.length) {
+        const [lvl, ms] = burst[0]; inten = lvl;
+        if (now - burst.t > ms) { burst.shift(); burst.t = now; if (lvl < .3 && AC && Math.random() < .5) crackle(.04, .015); }
+        world.style.transform = lvl < .3 && Math.random() < .3 ? `translate(${(Math.random() - .5) * 3}px, ${(Math.random() - .5) * 2}px)` : '';
+      } else { inten = .9 + Math.random() * .1; world.style.transform = ''; }
+    }
+    $('pend').setAttribute('transform', `rotate(${(swingA * 180 / Math.PI).toFixed(2)} ${pivot.x} ${pivot.y})`);
+    $('halo').setAttribute('opacity', (.25 + inten * .75).toFixed(2));
+    const v = Math.round(70 + 185 * inten); $('bulbglass').setAttribute('fill', `rgb(${v},${v},${v})`);
+    // where the bulb is, in the room and on screen
+    const lx = pivot.x + Math.sin(swingA) * cordLen, ly = pivot.y + Math.cos(swingA) * cordLen;
+    const m = room.getScreenCTM();
+    if (m) {
+      darkEl.style.setProperty('--lx', (m.a * lx + m.e).toFixed(1) + 'px');
+      darkEl.style.setProperty('--ly', (m.d * ly + m.f).toFixed(1) + 'px');
+      darkEl.style.setProperty('--r1', (m.a * 330).toFixed(0) + 'px');
+      darkEl.style.setProperty('--r2', (m.a * 1050).toFixed(0) + 'px');
+      darkEl.style.setProperty('--k', (1 - inten).toFixed(3));
+    }
+    pool.setAttribute('cx', (lx + (lx - pivot.x) * 1.6).toFixed(1)); pool.setAttribute('cy', poolY);
+    pool.setAttribute('opacity', (.55 * inten).toFixed(2));
+    for (const id in shades) {
+      const { pos, contact, cast } = shades[id], dx = pos.x - lx, dy = Math.max(60, pos.y - ly);
+      const lean = dx / dy;   // shadows fall away from the bulb, longer the further it leans
+      contact.setAttribute('cx', pos.x); contact.setAttribute('cy', pos.y + 2);
+      contact.setAttribute('rx', pos.w * .6); contact.setAttribute('ry', pos.w * .07 + 7);
+      contact.setAttribute('opacity', '1');
+      cast.setAttribute('cx', pos.x + lean * pos.w * .7); cast.setAttribute('cy', pos.y + 10);
+      cast.setAttribute('rx', pos.w * (.7 + Math.min(1.6, Math.abs(lean)) * .6)); cast.setAttribute('ry', pos.w * .16 + 12);
+      cast.setAttribute('opacity', (.9 * inten).toFixed(2));
+    }
+    requestAnimationFrame(light);
+  }
+  requestAnimationFrame(light);
+
+  /* ---------- old film: scratches, dust, the odd tracking roll ---------- */
+  {
+    const c = $('film'), g = c.getContext('2d');
+    let roll = -1;
+    const size = () => { c.width = innerWidth / 2 | 0; c.height = innerHeight / 2 | 0; };
+    size(); addEventListener('resize', size);
+    const frame = () => {
+      const w = c.width, hh = c.height; g.clearRect(0, 0, w, hh);
+      if (!panelOpen()) {
+        const n = Math.random() < .5 ? 0 : 1 + (Math.random() * 2 | 0);
+        for (let i = 0; i < n; i++) { const x = Math.random() * w; g.strokeStyle = `rgba(220,220,220,${.06 + Math.random() * .16})`; g.lineWidth = Math.random() < .8 ? .6 : 1.2; g.beginPath(); g.moveTo(x, 0); g.bezierCurveTo(x + (Math.random() - .5) * 8, hh * .3, x + (Math.random() - .5) * 8, hh * .7, x + (Math.random() - .5) * 6, hh); g.stroke(); }
+        for (let i = 0, d = Math.random() * 7 | 0; i < d; i++) { g.fillStyle = Math.random() < .6 ? 'rgba(0,0,0,.8)' : 'rgba(230,230,230,.5)'; g.beginPath(); g.ellipse(Math.random() * w, Math.random() * hh, .6 + Math.random() * 2, .6 + Math.random() * 1.6, Math.random() * 3, 0, 7); g.fill(); }
+        if (Math.random() < .02) { g.strokeStyle = 'rgba(0,0,0,.7)'; g.lineWidth = .8; g.beginPath(); let x = Math.random() * w, y = Math.random() * hh; g.moveTo(x, y); for (let k = 0; k < 6; k++) { x += (Math.random() - .5) * 30; y += (Math.random() - .5) * 30; g.lineTo(x, y); } g.stroke(); }   // a hair
+        if (roll < 0 && Math.random() < .004) roll = hh;
+        if (roll >= 0) { const bh = hh * .06; g.fillStyle = 'rgba(255,255,255,.06)'; g.fillRect(0, roll, w, bh); for (let k = 0; k < 40; k++) { g.fillStyle = `rgba(255,255,255,${Math.random() * .25})`; g.fillRect(Math.random() * w, roll + Math.random() * bh, 2 + Math.random() * 30, 1); } roll -= hh * .03; if (roll < -bh) roll = -1; }
+      }
+      if (!reduce) setTimeout(() => requestAnimationFrame(frame), 70);
+    };
+    frame();
+  }
 
   // little faders on the desk
   for (let i = 0; i < 12; i++) { const x = 150 + i * 20, y = 34 + (i * 37 % 26); el('line', { x1: x, y1: 30, x2: x, y2: 70, class: 'ln2' }, $('faders')); el('rect', { x: x - 4, y, width: 8, height: 6, class: 'fill' }, $('faders')); }
