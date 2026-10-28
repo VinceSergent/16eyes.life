@@ -62,6 +62,8 @@ body { background: var(--bg); color: var(--ice); font-family: var(--sans); overf
 .menu .sel { color: var(--ice); }
 .menu a:focus-visible, .menu button:focus-visible { outline: 1px dotted var(--aqua); outline-offset: 4px; }
 .menu .alert { position: absolute; left: 50%; top: 100%; transform: translateX(-50%); white-space: nowrap; color: var(--red); font-size: 10px; letter-spacing: .2em; }
+/* EP countdown under the disc: days:hours:minutes:seconds.hundredths */
+.count { margin-top: -6px; font-family: var(--sans); font-weight: 700; font-size: 11px; letter-spacing: .14em; color: var(--dim); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .deeper { margin-top: 8px; background: none; border: 0; padding: 2px 6px; cursor: pointer; font-family: var(--sans); font-weight: 700; font-size: 9px; letter-spacing: .24em; text-transform: uppercase; color: var(--dim); }
 .deeper:focus-visible { outline: 1px dotted var(--aqua); outline-offset: 4px; }
 .note { font-size: 9px; letter-spacing: .16em; color: #3b5058; text-transform: uppercase; }
@@ -161,6 +163,8 @@ body { background: var(--bg); color: var(--ice); font-family: var(--sans); overf
     <div class="cd" aria-hidden="true"></div>
     <button class="hub" id="eye1" aria-label="The center of the disc"></button>
   </div>
+
+  <div class="count" id="count" role="timer" aria-label="EP out Friday, November 13">00:00:00:00.00</div>
 
   <div id="logoWrap"><h1 class="logo" id="logo">16eyes</h1></div>
 
@@ -689,6 +693,16 @@ body { background: var(--bg); color: var(--ice); font-family: var(--sans); overf
   }
 
   const rect = el => { const r = el.getBoundingClientRect(); return { x: r.left * S, y: r.top * S, w: r.width * S, h: r.height * S, cx: (r.left + r.width / 2) * S, cy: (r.top + r.height / 2) * S }; };
+  // the EP drops Friday Nov 13 2026 at midnight in Houston (CST, UTC-6)
+  const EP_AT = Date.parse('2026-11-13T06:00:00Z');
+  const pad = (n, k = 2) => String(n).padStart(k, '0');
+  function countText() {
+    const ms = EP_AT - Date.now();
+    if (ms <= 0) return 'OUT NOW';
+    const d = Math.floor(ms / 864e5), h = Math.floor(ms / 36e5) % 24, m = Math.floor(ms / 6e4) % 60, sec = Math.floor(ms / 1e3) % 60, cs = Math.floor(ms / 10) % 100;
+    return `${pad(d)}:${pad(h)}:${pad(m)}:${pad(sec)}.${pad(cs)}`;
+  }
+  { const ce = document.getElementById('count'); const tick = () => { ce.textContent = countText(); }; tick(); setInterval(tick, 50); }
   const sansAt = (el, w = 700) => `${w} ${parseFloat(getComputedStyle(el).fontSize) * S}px "Helvetica Neue", Helvetica, Arial, sans-serif`;
   const hasLS = 'letterSpacing' in g;
 
@@ -855,6 +869,11 @@ body { background: var(--bg); color: var(--ice); font-family: var(--sans); overf
         g.fillStyle = '#ff3d4f'; g.fillText('INCOMING CALL', r.cx, r.y + r.h + 6 * S);
       }
     });
+    if (hasLS) g.letterSpacing = '0px';
+    // EP countdown, ticking in hundredths
+    const ce = $('count'), cr = rect(ce);
+    g.font = sansAt(ce); if (hasLS) g.letterSpacing = (1.5 * S) + 'px';
+    g.fillStyle = 'rgba(214,236,243,.82)'; g.fillText(countText(), cr.cx, cr.cy);
     if (hasLS) g.letterSpacing = '0px';
     // go deeper
     const dp = $('deeper'), dr = rect(dp);
