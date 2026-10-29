@@ -164,8 +164,8 @@ body.leaving #world { animation: crtoff .45s ease-in forwards; }
 /* studio desk */
 .desk { width: min(900px, 100%); border: 1.5px solid var(--ink); background: #070707; padding: 22px 18px; }
 .strips { display: flex; gap: 10px; justify-content: center; overflow-x: auto; padding-bottom: 6px; }
-.strip { width: 82px; flex: none; border: 1px solid #2b2b2b; padding: 10px 6px; display: grid; gap: 10px; justify-items: center; }
-.strip .nm { font-weight: 700; font-size: 9px; letter-spacing: .2em; text-transform: uppercase; text-align: center; height: 22px; overflow: hidden; }
+.strip { width: 92px; flex: none; border: 1px solid #2b2b2b; padding: 10px 6px; display: grid; gap: 10px; justify-items: center; }
+.strip .nm { font-weight: 700; font-size: 9px; letter-spacing: .1em; text-transform: uppercase; text-align: center; height: 22px; overflow: hidden; }
 .fadr { display: flex; gap: 8px; align-items: stretch; height: 170px; }
 .meter { width: 6px; background: #151515; position: relative; overflow: hidden; }
 .meter i { position: absolute; left: 0; right: 0; bottom: 0; height: 0; background: linear-gradient(#fff, #9a9a9a); }
@@ -175,7 +175,7 @@ input[type=range].v { writing-mode: vertical-lr; direction: rtl; width: 26px; he
 .trans label { display: flex; gap: 8px; align-items: center; }
 .trans input[type=range] { accent-color: #e8e8e8; width: 120px; }
 @media (max-width: 640px) {
-  .desk { padding: 16px 8px; } .strip { width: 62px; } .strips { justify-content: flex-start; }
+  .desk { padding: 16px 8px; } .strip { width: 72px; } .strips { justify-content: flex-start; }
   .frame { width: 140px; height: 260px; } .pad { grid-template-columns: repeat(3, 52px); } .pad .btn { height: 46px; }
 }
 </style>
@@ -845,13 +845,17 @@ input[type=range].v { writing-mode: vertical-lr; direction: rtl; width: 26px; he
 
   /* ---------- 7. studio desk: mix the stems ---------- */
   OPENERS.desk = () => {
-    const real = M.stems.filter(isAudio);
-    const names = real.length ? real.map(f => clean(f.name)) : ['drums', 'bass', 'pad', 'keys', 'tape'];
+    // four faders, always in this order; uploaded stems land on the fader their file name matches
+    const names = ['drums', 'vocals', 'bass', 'instruments'];
+    const pick = [/drum|perc|kick|snare|hat/i, /voc|vox|voice|acapella/i, /bass|808|sub/i, /./];
+    const real = M.stems.filter(isAudio), slots = names.map(() => null);
+    real.forEach(f => { const n = clean(f.name), k = pick.findIndex((re, i) => re.test(n) && !slots[i]); if (k >= 0) slots[k] = f; });
+    const has = slots.some(Boolean);
     const b = h(`<div class="desk"><div class="strips">${names.map((n, i) => `<div class="strip" data-i="${i}"><div class="nm">${esc(n)}</div>
       <div class="fadr"><div class="meter"><i></i></div><input class="v" type="range" min="0" max="1" step="0.01" value="0.8" aria-label="${esc(n)} volume"></div>
       <div class="row"><button class="btn" data-m>m</button><button class="btn" data-s>s</button></div></div>`).join('')}</div>
       <div class="trans"><button class="btn" id="tp">play</button><label class="cap">speed <input id="spd" type="range" min="0.7" max="1" step="0.01" value="1"></label><span class="cap" id="spv">1.00x</span></div>
-      <div class="ph" id="dph">${real.length ? 'loading stems…' : 'placeholder stems · add the real stems of a song in "fill the room"'}</div></div>`);
+      <div class="ph" id="dph">${has ? 'loading stems…' : 'placeholder stems · upload drums, vocals, bass and instruments in "fill the room"'}</div></div>`);
     const a = ac(); if (!a) { openPanel('studio', b); return; }
     const master = a.createGain(); master.gain.value = .9; master.connect(a.destination);
     const ch = names.map(() => { const g = a.createGain(), an = a.createAnalyser(); an.fftSize = 256; g.connect(an); an.connect(master); return { g, an, vol: .8, mute: false, solo: false, buf: new Float32Array(256) }; });
@@ -867,7 +871,7 @@ input[type=range].v { writing-mode: vertical-lr; direction: rtl; width: 26px; he
     spd.oninput = () => { speed = +spd.value; spv.textContent = speed.toFixed(2) + 'x'; sources.forEach(s => s.playbackRate && s.playbackRate.setTargetAtTime(speed, a.currentTime, .05)); };
 
     // real stems: decode them all, then start every one at the same instant
-    const loadReal = real.length ? Promise.all(real.map(f => fetch(f.url).then(r => r.arrayBuffer()).then(x => a.decodeAudioData(x)))).then(x => { bufs = x; b.querySelector('#dph').textContent = ''; }).catch(() => { b.querySelector('#dph').textContent = "couldn't load the stems"; }) : null;
+    const loadReal = has ? Promise.all(slots.map(f => f ? fetch(f.url).then(r => r.arrayBuffer()).then(x => a.decodeAudioData(x)) : null)).then(x => { bufs = x; b.querySelector('#dph').textContent = slots.every(Boolean) ? '' : 'missing: ' + names.filter((n, i) => !slots[i]).join(', '); }).catch(() => { b.querySelector('#dph').textContent = "couldn't load the stems"; }) : null;
 
     // placeholder stems: a slow loop, scheduled a little ahead
     const BARS = [[110, 130.8, 164.8], [87.3, 110, 130.8], [130.8, 164.8, 196], [98, 123.5, 146.8]];   // Am F C G
@@ -879,10 +883,12 @@ input[type=range].v { writing-mode: vertical-lr; direction: rtl; width: 26px; he
       if (k === 0 || k === 10) hit(ch[0].g, 120, .9, .5, 'sine', 38);
       if (k === 8) nz(ch[0].g, .35, .3);
       if (k % 2 === 0) nz(ch[0].g, k % 4 ? .05 : .09, .06, true);
-      if (k === 0 || k === 7 || k === 10) hit(ch[1].g, chord[0] / 2, .5, dur * (k === 0 ? 6 : 3), 'sine');
-      if (k === 0) chord.forEach(f => [0, 1].forEach(d => { const o = a.createOscillator(), g = a.createGain(), lp = a.createBiquadFilter(); o.type = 'sawtooth'; o.frequency.value = f * 2 * (d ? 1.004 : .996); lp.type = 'lowpass'; lp.frequency.value = 900; o.connect(lp); lp.connect(g); g.connect(ch[2].g); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(.05, t + dur * 4); g.gain.setValueAtTime(.05, t + dur * 13); g.gain.linearRampToValueAtTime(0, t + dur * 16); o.start(t); o.stop(t + dur * 16 + .05); }));
+      if (k === 0 || k === 7 || k === 10) hit(ch[2].g, chord[0] / 2, .5, dur * (k === 0 ? 6 : 3), 'sine');
+      if (k === 2 || k === 6 || k === 11) { const o = a.createOscillator(), g = a.createGain(), v = a.createOscillator(), vg = a.createGain(), lp = a.createBiquadFilter(), len = dur * (k === 11 ? 5 : 3.6);
+        o.type = 'triangle'; o.frequency.value = chord[(k >> 2) % 3] * 2; v.frequency.value = 5; vg.gain.value = 4; v.connect(vg); vg.connect(o.frequency); lp.type = 'lowpass'; lp.frequency.value = 1100;
+        o.connect(lp); lp.connect(g); g.connect(ch[1].g); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(.16, t + .08); g.gain.linearRampToValueAtTime(0, t + len); [o, v].forEach(n => { n.start(t); n.stop(t + len + .02); }); }   // a hummed vocal line
+      if (k === 0) chord.forEach(f => [0, 1].forEach(d => { const o = a.createOscillator(), g = a.createGain(), lp = a.createBiquadFilter(); o.type = 'sawtooth'; o.frequency.value = f * 2 * (d ? 1.004 : .996); lp.type = 'lowpass'; lp.frequency.value = 900; o.connect(lp); lp.connect(g); g.connect(ch[3].g); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(.05, t + dur * 4); g.gain.setValueAtTime(.05, t + dur * 13); g.gain.linearRampToValueAtTime(0, t + dur * 16); o.start(t); o.stop(t + dur * 16 + .05); }));
       if (k % 4 === 2 || k === 15) hit(ch[3].g, chord[(k >> 2) % 3] * 4, .12, .9, 'sine');
-      if (k % 4 === 0) nz(ch[4].g, .04, dur * 4, false);
     }
     function sched() {
       const dur = 60 / (72 * speed) / 4;
@@ -890,10 +896,10 @@ input[type=range].v { writing-mode: vertical-lr; direction: rtl; width: 26px; he
     }
     function start() {
       solo('desk'); playing = true; tp.textContent = 'stop'; $('o-desk').classList.add('playing');
-      if (real.length) {
+      if (has) {
         if (!bufs) { loadReal.then(() => { if (playing && bufs) start(); }); return; }
         const t = a.currentTime + .08; startAt = t;
-        sources = bufs.map((bf, i) => { const s = a.createBufferSource(); s.buffer = bf; s.loop = true; s.playbackRate.value = speed; s.connect(ch[i].g); s.start(t, offset % bf.duration); return s; });
+        sources = bufs.map((bf, i) => { if (!bf) return null; const s = a.createBufferSource(); s.buffer = bf; s.loop = true; s.playbackRate.value = speed; s.connect(ch[i].g); s.start(t, offset % bf.duration); return s; }).filter(Boolean);
       } else { nextT = a.currentTime + .08; step = 0; sched(); timer = setInterval(sched, 50); }
     }
     function stop() {
