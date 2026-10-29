@@ -154,7 +154,8 @@ body.leaving #world { animation: crtoff .45s ease-in forwards; }
 .leaf i { position: absolute; right: 16px; top: 52%; width: 12px; height: 12px; border-radius: 50%; border: 1.5px solid #ccc; }
 .open .leaf { transform: rotateY(-100deg); }
 .pad { display: grid; grid-template-columns: repeat(3, 56px); gap: 8px; }
-.pad .btn { height: 52px; font-size: 16px; }
+.pad .btn { height: 52px; font-size: 16px; padding: 0; min-width: 0; letter-spacing: 0; }
+.pad .btn.w { font-size: 9px; letter-spacing: .16em; text-indent: .16em; }   /* clr and enter fit inside their keys, centred */
 .code { font: 700 30px var(--sans); letter-spacing: .5em; text-align: center; margin-bottom: 14px; min-height: 40px; padding-left: .5em; }
 .shake { animation: shake .4s; }
 @keyframes shake { 20%, 60% { transform: translateX(-8px); } 40%, 80% { transform: translateX(8px); } }
@@ -779,7 +780,7 @@ body.leaving #world { animation: crtoff .45s ease-in forwards; }
   /* ---------- 6. locked door ---------- */
   OPENERS.door = () => {
     const b = h(`<div><div class="dr"><div class="frame" id="frame"><div class="leaf"><i></i></div></div>
-      <div><div class="code" id="code">····</div><div class="pad">${[1,2,3,4,5,6,7,8,9].map(n => `<button class="btn" data-k="${n}">${n}</button>`).join('')}<button class="btn" data-k="c">clr</button><button class="btn" data-k="0">0</button><button class="btn" data-k="e">enter</button></div>
+      <div><div class="code" id="code">····</div><div class="pad">${[1,2,3,4,5,6,7,8,9].map(n => `<button class="btn" data-k="${n}">${n}</button>`).join('')}<button class="btn w" data-k="c">clr</button><button class="btn" data-k="0">0</button><button class="btn w" data-k="e">enter</button></div>
       <div class="cap" style="margin-top:14px;text-align:center" id="dmsg">the code drops with the merch</div></div></div><div class="behind" id="behind" hidden></div></div>`);
     const code = b.querySelector('#code'), dmsg = b.querySelector('#dmsg'), frame = b.querySelector('#frame'), behind = b.querySelector('#behind');
     let v = '';
