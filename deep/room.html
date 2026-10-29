@@ -712,7 +712,8 @@ input[type=range].v { writing-mode: vertical-lr; direction: rtl; width: 26px; he
     }
     function show(dir) {
       const s = step();
-      pages.forEach((pg, k) => { fillPage(pg, items[at + k], at + k + 1); if (dir) { pg.classList.remove('flip'); void pg.offsetWidth; pg.classList.add('flip'); } });
+      // only the right-hand page turns, swinging on the spine
+      pages.forEach((pg, k) => { fillPage(pg, items[at + k], at + k + 1); if (dir && k === s - 1) { pg.classList.remove('flip'); void pg.offsetWidth; pg.classList.add('flip'); } });
       pgn.textContent = `${at + 1}${s > 1 && items[at + 1] ? '–' + (at + 2) : ''} / ${items.length}`;
       if (dir) crackle(.12, .05);
     }
