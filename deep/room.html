@@ -164,6 +164,76 @@ body.leaving #world { animation: crtoff .45s ease-in forwards; }
 @media (max-width: 640px) {
   .frame { width: 140px; height: 260px; } .pad { grid-template-columns: repeat(3, 52px); } .pad .btn { height: 46px; }
 }
+
+/* lights out: only a torch circle around the pointer */
+#dark.torch { background: radial-gradient(circle at var(--tx, 50%) var(--ty, 60%), rgba(0,0,0,0) 0, rgba(0,0,0,.3) 70px, rgba(0,0,0,.97) 165px); }
+@media (hover: none) { #dark.torch { background: radial-gradient(circle at var(--tx, 50%) var(--ty, 60%), rgba(0,0,0,0) 0, rgba(0,0,0,.3) 90px, rgba(0,0,0,.97) 200px); } }
+#switch, #key { pointer-events: all; cursor: pointer; outline: none; }
+#toggle { transition: transform .08s; }
+body.off #toggle { transform: translateY(7px); }
+#key { display: none; }
+body.off #key { display: inline; }
+#key:hover .kart, #key:focus-visible .kart { filter: drop-shadow(0 0 6px #fff); }
+#inv { left: 50%; top: calc(14px + env(safe-area-inset-top, 0px)); transform: translateX(-50%); color: #ddd; }
+
+/* CD player: a deck with a tray, and a shelf of discs */
+.deck { display: grid; justify-items: center; gap: 4px; }
+.tray { width: min(300px, 70vw); aspect-ratio: 1; border-radius: 50%; border: 1.5px dashed #444; display: grid; place-items: center; position: relative; transition: border-color .2s, box-shadow .2s; }
+.tray.hot { border-color: #fff; box-shadow: 0 0 30px rgba(255,255,255,.25); }
+.tray.full { border-style: solid; border-color: #222; }
+.tray .slot { position: absolute; }
+.tray.full .slot { display: none; }
+.tray .disc { position: absolute; inset: 0; width: auto; touch-action: none; cursor: grab; }
+.tray .disc:active { cursor: grabbing; }
+.disc.drop { animation: drop .35s cubic-bezier(.2,.8,.2,1); }
+@keyframes drop { from { scale: 1.12; opacity: 0; } }
+.deck .bar { width: min(300px, 70vw); }
+.shelf { width: 100%; }
+.cases { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 10px; margin: 12px 0; }
+.case { background: #0b0b0b; border: 1px solid #333; color: #ccc; padding: 10px 8px; display: grid; justify-items: center; gap: 6px; cursor: grab; touch-action: none; font: 700 10px var(--sans); }
+.case:hover, .case:focus-visible { border-color: #fff; color: #fff; outline: none; }
+.case b { letter-spacing: .2em; } .case em { font-style: normal; color: #777; font-size: 9px; letter-spacing: .08em; text-align: center; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.case.out .mini { opacity: .15; }
+.mini, .ghost { width: 46px; height: 46px; border-radius: 50%; display: block;
+  background: radial-gradient(circle closest-side, #000 0 12%, #2a2a2a 12.5% 15%, transparent 15.5%), conic-gradient(#f3f3f3, #8d8d8d 15%, #ececec 30%, #7f7f7f 48%, #fafafa 60%, #888 78%, #f3f3f3); }
+.ghost { position: fixed; z-index: 70; width: 90px; height: 90px; margin: -45px 0 0 -45px; pointer-events: none; box-shadow: 0 10px 30px rgba(0,0,0,.8); }
+
+/* photo book: loose prints, and the page held up to the light */
+.pg { touch-action: pan-y; user-select: none; -webkit-user-select: none; }
+.pg .print, .pg .underpic { position: absolute; inset: 18px 18px 30px; display: grid; place-items: center; }
+.pg .print img, .pg .underpic img, .pg .print video, .pg .underpic video { max-width: 100%; max-height: 100%; object-fit: contain; filter: grayscale(1) contrast(1.08); transition: filter .25s; }
+.pg .print.loose { inset: 30px 34px 44px; cursor: grab; touch-action: none; z-index: 1; }
+.pg .print.loose img { box-shadow: 0 8px 26px rgba(0,0,0,.9); border: 6px solid #d9d9d9; }
+.pg .back { position: absolute; left: 10%; right: 10%; top: 44%; text-align: center; font: 700 22px var(--sans); color: #111; transform: scaleX(-1) rotate(4deg); opacity: 0; transition: opacity .25s; pointer-events: none; z-index: 2; letter-spacing: -.01em; }
+.spread.lit .pg { background: #f0f0f0; }
+.spread.lit .pg img { filter: grayscale(1) brightness(1.9) contrast(.5); }
+.spread.lit .pg .print.loose { opacity: .55; }
+.spread.lit .pg .back { opacity: .7; }
+.flipb { animation: flipb .45s ease-out; transform-origin: right center; }
+@keyframes flipb { from { transform: rotateY(70deg); opacity: .2; } }
+
+/* answering machine: a tape counter, winding */
+.tape { gap: 10px; }
+.tapepos { flex: 1; height: 2px; background: #333; position: relative; }
+.tapepos i { position: absolute; top: -4px; width: 2px; height: 10px; background: #fff; left: 0; }
+.am.fast .reel { animation: rot .25s linear infinite; }
+.am.hid { box-shadow: 0 0 40px rgba(255,255,255,.12); }
+.am.hid .lcd { color: #777; }
+
+/* TV: a dial, and a top to hit */
+.tvbox { position: relative; margin-top: 30px; }
+.tvbox.hit { animation: hit .35s cubic-bezier(.3,1.6,.5,1); }
+@keyframes hit { 20% { transform: translateY(6px) rotate(-.6deg); } 50% { transform: translateY(-2px) rotate(.3deg); } }
+.tvtop { position: absolute; left: 22px; right: 22px; top: -34px; height: 30px; background: none; border: 0; border-top: 1px dashed #333; color: #555; font: 700 8px var(--sans); letter-spacing: .3em; text-transform: uppercase; cursor: pointer; }
+.tvtop:hover, .tvtop:focus-visible { color: #fff; border-color: #888; outline: none; }
+.knob { --a: 0deg; width: 74px; height: 74px; border-radius: 50%; border: 1.5px solid var(--ink); position: relative; cursor: grab; touch-action: none; outline: none;
+  background: repeating-conic-gradient(from -2deg, #555 0 1deg, transparent 1deg 15deg); transform: rotate(var(--a)); }
+.knob::after { content: ""; position: absolute; inset: 14px; border-radius: 50%; background: #0b0b0b; border: 1px solid #444; }
+.knob i { position: absolute; left: 50%; top: 6px; width: 3px; height: 20px; margin-left: -1.5px; background: #fff; z-index: 1; box-shadow: 0 0 6px #fff; }
+.knob:focus-visible { box-shadow: 0 0 14px rgba(255,255,255,.4); }
+
+/* door: the key */
+.usekey { display: block; margin: 12px auto 0; }
 </style>
 </head>
 <body>
@@ -175,6 +245,7 @@ body.leaving #world { animation: crtoff .45s ease-in forwards; }
 <a class="hud" id="home" href="/">← exit</a>
 <a class="hud" id="fill" href="/deep/upload">fill the room</a>
 <div class="hud" id="hint">pick something up</div>
+<div class="hud" id="inv" hidden>key ⚷</div>
 
 <div id="world">
 <!-- three layers: the still room, the moving light and shadows, then the objects (so the light doesn't redraw the grime) -->
@@ -339,9 +410,9 @@ body.leaving #world { animation: crtoff .45s ease-in forwards; }
     // one cramped room: TV on a low cabinet with the CD player beside it,
     // the answering machine by the door, photo book on the floor
     land: { vb: [1600, 1000], wall: [290, 140, 1390, 640],
-      at: { 'o-tv': [560, 343, .9], 'o-cd': [790, 468, .8], 'o-door': [1180, 289, .9], 'o-am': [1160, 650, .85], 'o-book': [560, 710, .95] } },
+      at: { 'o-tv': [560, 343, .9], 'o-cd': [790, 468, .8], 'o-door': [1180, 289, .9], 'o-am': [1160, 650, .85], 'o-book': [560, 710, .95] }, key: [905, 700] },
     port: { vb: [1000, 1450], wall: [90, 180, 910, 820],
-      at: { 'o-tv': [110, 520, .85], 'o-cd': [318, 642, .7], 'o-door': [620, 430, .95], 'o-am': [590, 960, 1.05], 'o-book': [110, 1000, 1.15] } },
+      at: { 'o-tv': [110, 520, .85], 'o-cd': [318, 642, .7], 'o-door': [620, 430, .95], 'o-am': [590, 960, 1.05], 'o-book': [110, 1000, 1.15] }, key: [480, 905] },
   };
   // the floor point each object stands on and how wide it is, for its shadow
   const objs = [...document.querySelectorAll('.obj')];
@@ -353,6 +424,10 @@ body.leaving #world { animation: crtoff .45s ease-in forwards; }
     base[o.id] = { x: bb.x + bb.width / 2, y: bb.y + bb.height, w: bb.width };
   });
 
+  // lights out, the torch, and the key on the floor
+  let lightsOff = false, hasKey = false;
+  const torch = { x: innerWidth / 2, y: innerHeight * .6 };
+  try { hasKey = sessionStorage.getItem('deep-key') === '1'; } catch (e) {}
   let L = LAYOUT.land, pivot = { x: 800, y: 0 }, cordLen = 200;
   let swingA = .16, swingV = 0, inten = 1, pool = null, poolY = 0;
   const shades = {};
@@ -414,6 +489,25 @@ body.leaving #world { animation: crtoff .45s ease-in forwards; }
     ex.addEventListener('click', leave);
     ex.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); leave(); } });
 
+    // a light switch beside the door, and a key on the floor that only shows up in the dark
+    $('switch')?.remove(); $('key')?.remove();
+    const [dx, dy, dk] = L.at['o-door'], swx = dx - 34 * dk, swy = dy + 175 * dk;
+    const swg = el('g', { id: 'switch', tabindex: 0, role: 'switch', 'aria-label': 'light switch', 'aria-checked': String(!lightsOff) }, room);
+    el('rect', { x: swx - 9, y: swy - 15, width: 18, height: 30, rx: 2, fill: '#161616', stroke: '#8a8a8a', 'stroke-width': 1.2 }, swg);
+    el('rect', { x: swx - 3, y: swy - 8, width: 6, height: 9, fill: '#d8d8d8', id: 'toggle' }, swg);
+    el('rect', { x: swx - 24, y: swy - 30, width: 48, height: 60, fill: 'transparent' }, swg);   // easier to hit
+    swg.addEventListener('click', flipLights);
+    swg.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); flipLights(); } });
+    if (!hasKey) {
+      const [kx, ky] = L.key, key = el('g', { id: 'key', tabindex: 0, role: 'button', 'aria-label': 'a key' }, room);
+      const ka = el('g', { class: 'kart', transform: `translate(${kx} ${ky}) rotate(-18) scale(1.3)` }, key);
+      el('circle', { cx: 0, cy: 0, r: 7, fill: 'none', stroke: '#d6d6d6', 'stroke-width': 2 }, ka);
+      el('path', { d: 'M7 0 H30 M22 0 v6 M27 0 v5', fill: 'none', stroke: '#d6d6d6', 'stroke-width': 2, 'stroke-linecap': 'round' }, ka);
+      el('rect', { x: -14, y: -14, width: 52, height: 28, fill: 'transparent' }, ka);
+      key.addEventListener('click', pickKey);
+      key.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pickKey(); } });
+    }
+
     // the bulb on its cord, hung from the ceiling
     bulb.innerHTML = '';
     pivot = { x: W / 2, y: 0 }; cordLen = y0 + 70;
@@ -449,6 +543,24 @@ body.leaving #world { animation: crtoff .45s ease-in forwards; }
   // coming back with the browser's back button shouldn't leave the screen dark
   addEventListener('pageshow', e => { if (e.persisted) document.body.classList.remove('leaving'); });
 
+  function hintFor(text, ms = 3200) { const n = $('hint'); n.textContent = text; n.style.opacity = 1; clearTimeout(n.t); n.t = setTimeout(() => n.style.opacity = 0, ms); }
+  function flipLights() {
+    lightsOff = !lightsOff;
+    document.body.classList.toggle('off', lightsOff); darkEl.classList.toggle('torch', lightsOff);
+    $('switch').setAttribute('aria-checked', String(!lightsOff));
+    tone(1900, .012, .04); tone(260, .03, .04, 'square', .02);
+    if (lightsOff) { hintFor('lights out · look around'); crackle(.08, .03); } else hintFor('');
+  }
+  function pickKey() {
+    hasKey = true; try { sessionStorage.setItem('deep-key', '1'); } catch (e) {}
+    $('key')?.remove(); $('inv').hidden = false;
+    tone(1700, .04, .04); tone(2300, .07, .03, 'sine', .07);
+    hintFor('you found a key');
+  }
+  if (hasKey) $('inv').hidden = false;
+  // the torch follows the mouse, or a finger
+  ['pointermove', 'pointerdown'].forEach(n => addEventListener(n, e => { torch.x = e.clientX; torch.y = e.clientY; }, { passive: true }));
+
   drawShell(); addEventListener('resize', drawShell);
 
   /* ---------- the bulb: swings on its cord and flickers; its light and the shadows follow it ---------- */
@@ -466,7 +578,8 @@ body.leaving #world { animation: crtoff .45s ease-in forwards; }
   }
   function light(now) {
     const dt = Math.min(.05, (now - lastT) / 1000); lastT = now;
-    if (!reduce) {
+    if (lightsOff) { inten = 0; world.style.transform = ''; }
+    else if (!reduce) {
       // a pendulum that never quite settles
       const acc = -3.9 * Math.sin(swingA) - .08 * swingV;
       swingV += acc * dt; swingA += swingV * dt;
@@ -474,7 +587,7 @@ body.leaving #world { animation: crtoff .45s ease-in forwards; }
       if (E < .045 && Math.abs(swingV) > .02) swingV *= 1 + dt * .6;
       if (E < .001) swingV += .05;
       // flicker: a steady hum, then now and then a stutter or a brownout
-      if (!burst.length && now > nextBurst) { burst = burstPattern(); burst.t = now; nextBurst = now + 2500 + Math.random() * 7000; }
+      if (!burst.length && now > nextBurst && !lightsOff) { burst = burstPattern(); burst.t = now; nextBurst = now + 2500 + Math.random() * 7000; }
       if (burst.length) {
         const [lvl, ms] = burst[0]; inten = lvl;
         if (now - burst.t > ms) { burst.shift(); burst.t = now; if (lvl < .3 && AC && Math.random() < .5) crackle(.04, .015); }
@@ -482,11 +595,12 @@ body.leaving #world { animation: crtoff .45s ease-in forwards; }
       } else { inten = .9 + Math.random() * .1; world.style.transform = ''; }
     }
     $('pend').setAttribute('transform', `rotate(${(swingA * 180 / Math.PI).toFixed(2)} ${pivot.x} ${pivot.y})`);
-    $('halo').setAttribute('opacity', (.25 + inten * .75).toFixed(2));
-    const v = Math.round(70 + 185 * inten); $('bulbglass').setAttribute('fill', `rgb(${v},${v},${v})`);
+    $('halo').setAttribute('opacity', lightsOff ? 0 : (.25 + inten * .75).toFixed(2));
+    const v = lightsOff ? 30 : Math.round(70 + 185 * inten); $('bulbglass').setAttribute('fill', `rgb(${v},${v},${v})`);
     // where the bulb is, in the room and on screen
     const lx = pivot.x + Math.sin(swingA) * cordLen, ly = pivot.y + Math.cos(swingA) * cordLen;
     const m = room.getScreenCTM();
+    if (lightsOff) { darkEl.style.setProperty('--tx', torch.x + 'px'); darkEl.style.setProperty('--ty', torch.y + 'px'); }
     if (m) {
       darkEl.style.setProperty('--lx', (m.a * lx + m.e).toFixed(1) + 'px');
       darkEl.style.setProperty('--ly', (m.d * ly + m.f).toFixed(1) + 'px');
@@ -587,72 +701,219 @@ body.leaving #world { animation: crtoff .45s ease-in forwards; }
     return c.toDataURL('image/jpeg', .8);
   }
 
-  /* ---------- 1. CD player ---------- */
-  const audio = new Audio(); audio.preload = 'metadata';
-  let trackIx = -1;
+  /* ---------- 1. CD player: drag a disc off the shelf into the tray; scratch it, hold to slow it down ---------- */
+  const audio = new Audio(); audio.preload = 'auto';
+  // slowing down drops the pitch too, like a screwed tape
+  ['preservesPitch', 'mozPreservesPitch', 'webkitPreservesPitch'].forEach(k => { if (k in audio) audio[k] = false; });
+  let trackIx = -1, discs = null;
   players.cd = () => { audio.pause(); };
   audio.addEventListener('play', () => $('o-cd').classList.add('playing'));
   audio.addEventListener('pause', () => $('o-cd').classList.remove('playing'));
-  audio.addEventListener('ended', () => { if (M.tracks.length) playTrack((trackIx + 1) % M.tracks.length); });
+  audio.addEventListener('ended', () => { if (discs && discs.length) playTrack((trackIx + 1) % discs.length); });
   function playTrack(i) {
-    const t = M.tracks[i]; if (!t) return;
+    const t = discs && discs[i]; if (!t) return;
     solo('cd'); trackIx = i; audio.src = t.url; audio.play().catch(() => {});
-    document.querySelectorAll('.tracks li').forEach((li, k) => li.classList.toggle('cur', k === i));
+    document.dispatchEvent(new Event('cdtrack'));
   }
-  OPENERS.cd = () => {
-    const b = h(`<div class="cdp"><div class="disc" id="disc"></div><div></div></div>`);
-    const side = b.children[1], disc = b.children[0];
-    let raf = 0;
-    if (M.tracks.length) {
-      side.innerHTML = `<ol class="tracks">${M.tracks.map((t, i) => `<li data-i="${i}"><span>${String(i + 1).padStart(2, '0')}</span>${esc(clean(t.name))}</li>`).join('')}</ol>
-        <div class="row"><button class="btn" data-a="prev">◀◀</button><button class="btn" data-a="play">play</button><button class="btn" data-a="next">▶▶</button></div>
-        <div class="bar"><i></i></div><div class="cap" id="tm">0:00 / 0:00</div>`;
-      side.querySelectorAll('li').forEach(li => li.addEventListener('click', () => playTrack(+li.dataset.i)));
-      const pb = side.querySelector('[data-a=play]'), fill = side.querySelector('.bar i'), tm = side.querySelector('#tm');
-      side.querySelector('[data-a=prev]').onclick = () => playTrack((Math.max(trackIx, 0) - 1 + M.tracks.length) % M.tracks.length);
-      side.querySelector('[data-a=next]').onclick = () => playTrack((trackIx + 1) % M.tracks.length);
-      pb.onclick = () => { if (trackIx < 0) return playTrack(0); if (audio.paused) { solo('cd'); audio.play(); } else audio.pause(); };
-      side.querySelector('.bar').onclick = e => { const r = e.currentTarget.getBoundingClientRect(); if (audio.duration) audio.currentTime = (e.clientX - r.left) / r.width * audio.duration; };
-      const loop = () => { pb.textContent = audio.paused ? 'play' : 'pause'; disc.classList.toggle('go', !audio.paused);
-        fill.style.width = (audio.duration ? audio.currentTime / audio.duration * 100 : 0) + '%'; tm.textContent = `${fmt(audio.currentTime)} / ${fmt(audio.duration)}`; raf = requestAnimationFrame(loop); };
-      loop();
-      if (trackIx >= 0) side.querySelectorAll('li')[trackIx]?.classList.add('cur');
-    } else {
-      // placeholder until songs are uploaded: his SoundCloud, in black and white
-      solo('cd');
-      side.innerHTML = `<iframe class="sc" title="16eyes on SoundCloud" allow="autoplay" src="https://w.soundcloud.com/player/?url=${encodeURIComponent('https://soundcloud.com/16eyes')}&color=%23111111&auto_play=false&hide_related=true&show_comments=false&show_user=true&show_reposts=false&visual=false"></iframe><div class="ph">placeholder · playing from soundcloud until songs are uploaded</div>`;
-      disc.classList.add('go');
-    }
-    openPanel('cd player', b, () => cancelAnimationFrame(raf));
+  // stand-in songs until real ones are uploaded: three slow loops, rendered once, so every control has something to play
+  function toWav(buf) {
+    const d = buf.getChannelData(0), n = d.length, v = new DataView(new ArrayBuffer(44 + n * 2));
+    const s = (o, str) => [...str].forEach((c, i) => v.setUint8(o + i, c.charCodeAt(0)));
+    s(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); s(8, 'WAVEfmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+    v.setUint32(24, buf.sampleRate, true); v.setUint32(28, buf.sampleRate * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true); s(36, 'data'); v.setUint32(40, n * 2, true);
+    for (let i = 0; i < n; i++) v.setInt16(44 + i * 2, Math.max(-1, Math.min(1, d[i])) * 32767, true);
+    return URL.createObjectURL(new Blob([v], { type: 'audio/wav' }));
+  }
+  let fakeTracks = null;
+  function placeholderTracks() {
+    if (fakeTracks) return fakeTracks;
+    const OC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+    if (!OC) return (fakeTracks = Promise.resolve([]));
+    const songs = [[66, [55, 65.4, 49, 58.3]], [72, [61.7, 55, 73.4, 65.4]], [60, [49, 46.2, 55, 41.2]]];
+    fakeTracks = Promise.all(songs.map(([bpm, roots], n) => {
+      const sr = 22050, len = 16, oc = new OC(1, sr * len, sr), beat = 60 / bpm;
+      const nb = oc.createBuffer(1, sr, sr), nd = nb.getChannelData(0); for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
+      const bus = oc.createGain(); bus.gain.value = .55; bus.connect(oc.destination);
+      for (let b = 0; b * beat < len; b++) {
+        const t = b * beat;
+        if (b % 4 === 0 || b % 4 === 2 && n !== 1) {   // kick
+          const k = oc.createOscillator(), g = oc.createGain();
+          k.frequency.setValueAtTime(120, t); k.frequency.exponentialRampToValueAtTime(38, t + .3);
+          g.gain.setValueAtTime(.95, t); g.gain.exponentialRampToValueAtTime(.001, t + .5); k.connect(g); g.connect(bus); k.start(t); k.stop(t + .55);
+        }
+        if (b % 4 === 1 || b % 4 === 3) {   // a dark clap
+          const s = oc.createBufferSource(), f = oc.createBiquadFilter(), g = oc.createGain();
+          s.buffer = nb; f.type = 'bandpass'; f.frequency.value = 1300; g.gain.setValueAtTime(.5, t); g.gain.exponentialRampToValueAtTime(.001, t + .22);
+          s.connect(f); f.connect(g); g.connect(bus); s.start(t, Math.random() * .5); s.stop(t + .25);
+        }
+        for (let hh = 0; hh < 2; hh++) {   // hats
+          const s = oc.createBufferSource(), f = oc.createBiquadFilter(), g = oc.createGain(), th = t + hh * beat / 2;
+          s.buffer = nb; f.type = 'highpass'; f.frequency.value = 7000; g.gain.setValueAtTime(.12, th); g.gain.exponentialRampToValueAtTime(.001, th + .05);
+          s.connect(f); f.connect(g); g.connect(bus); s.start(th, Math.random() * .5); s.stop(th + .06);
+        }
+        if (b % 4 === 0) {   // a slow pad chord per bar
+          const root = roots[(b / 4) % roots.length], lp = oc.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 900; lp.connect(bus);
+          [2, 3, 4.76, 6].forEach(m => {
+            const o = oc.createOscillator(), g = oc.createGain(); o.type = 'sawtooth'; o.frequency.value = root * m; o.detune.value = (Math.random() - .5) * 14;
+            g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(.045, t + beat * 1.5); g.gain.linearRampToValueAtTime(0, t + beat * 4.1);
+            o.connect(g); g.connect(lp); o.start(t); o.stop(t + beat * 4.2);
+          });
+          const sub = oc.createOscillator(), sg = oc.createGain(); sub.frequency.value = root; sg.gain.setValueAtTime(.35, t); sg.gain.linearRampToValueAtTime(0, t + beat * 4);
+          sub.connect(sg); sg.connect(bus); sub.start(t); sub.stop(t + beat * 4.1);
+        }
+      }
+      const r = oc.startRendering();
+      return (r && r.then ? r : new Promise(res => { oc.oncomplete = e => res(e.renderedBuffer); })).then(buf => ({ url: toWav(buf), name: `placeholder ${n + 1}` }));
+    })).catch(() => []);
+    return fakeTracks;
+  }
+  OPENERS.cd = async () => {
+    const real = M.tracks.filter(isAudio);
+    discs = real.length ? real : await placeholderTracks();
+    const b = h(`<div class="cdp">
+      <div class="deck">
+        <div class="tray" id="tray"><div class="disc" id="disc" hidden></div><div class="slot cap">drop a cd here</div></div>
+        <div class="bar"><i></i></div><div class="cap" id="tm">empty</div>
+        <div class="row" style="margin-top:12px"><button class="btn" data-a="prev" aria-label="previous">◀◀</button><button class="btn" data-a="play">play</button><button class="btn" data-a="next" aria-label="next">▶▶</button><button class="btn" data-a="slow">hold · slow</button></div>
+      </div>
+      <div class="shelf"><div class="cap">the shelf</div>
+        <div class="cases">${discs.map((t, i) => `<button class="case" data-i="${i}" type="button"><span class="mini"></span><b>${String(i + 1).padStart(2, '0')}</b><em>${esc(clean(t.name))}</em></button>`).join('')}</div>
+        <div class="ph">${real.length ? '' : 'placeholder songs · add real ones in "fill the room"<br>'}drag a cd into the player · drag the spinning disc to scratch</div></div></div>`);
+    const tray = b.querySelector('#tray'), disc = b.querySelector('#disc'), fill = b.querySelector('.bar i'), tm = b.querySelector('#tm'), pb = b.querySelector('[data-a=play]');
+    let raf = 0, rot = 0, rate = 1, slowTo = 1, scratch = null, last = performance.now();
+    const shelfMark = () => b.querySelectorAll('.case').forEach((c, k) => c.classList.toggle('out', k === trackIx));
+    const showDisc = () => { disc.hidden = trackIx < 0; tray.classList.toggle('full', trackIx >= 0); shelfMark(); };
+    const onTrack = () => { showDisc(); disc.classList.remove('drop'); void disc.offsetWidth; disc.classList.add('drop'); };
+    document.addEventListener('cdtrack', onTrack);
+    showDisc();
+    // pull a cd off the shelf and drop it in the tray (a plain tap loads it too)
+    b.querySelectorAll('.case').forEach(c => c.addEventListener('pointerdown', e => {
+      e.preventDefault();
+      const i = +c.dataset.i, sx = e.clientX, sy = e.clientY;
+      let ghost = null;
+      const move = ev => {
+        if (!ghost && Math.hypot(ev.clientX - sx, ev.clientY - sy) > 6) { ghost = h('<div class="ghost"></div>'); document.body.appendChild(ghost); tone(1500, .02, .02); }
+        if (ghost) { ghost.style.left = ev.clientX + 'px'; ghost.style.top = ev.clientY + 'px'; const r = tray.getBoundingClientRect(); tray.classList.toggle('hot', ev.clientX > r.left && ev.clientX < r.right && ev.clientY > r.top && ev.clientY < r.bottom); }
+      };
+      const up = ev => {
+        removeEventListener('pointermove', move); removeEventListener('pointerup', up); removeEventListener('pointercancel', up);
+        const r = tray.getBoundingClientRect(), inTray = ev.clientX > r.left && ev.clientX < r.right && ev.clientY > r.top && ev.clientY < r.bottom;
+        if (ghost) ghost.remove(); tray.classList.remove('hot');
+        if (!ghost || inTray) { tone(300, .05, .05); setTimeout(() => tone(520, .04, .04), 120); playTrack(i); }
+      };
+      addEventListener('pointermove', move); addEventListener('pointerup', up); addEventListener('pointercancel', up);
+    }));
+    b.querySelector('[data-a=prev]').onclick = () => discs.length && playTrack((Math.max(trackIx, 0) - 1 + discs.length) % discs.length);
+    b.querySelector('[data-a=next]').onclick = () => discs.length && playTrack((trackIx + 1) % discs.length);
+    pb.onclick = () => { if (trackIx < 0) return discs.length && playTrack(0); if (audio.paused) { solo('cd'); audio.play(); } else audio.pause(); };
+    b.querySelector('.bar').onclick = e => { const r = e.currentTarget.getBoundingClientRect(); if (audio.duration) audio.currentTime = (e.clientX - r.left) / r.width * audio.duration; };
+    // hold to slow it down (and the pitch with it)
+    const slow = b.querySelector('[data-a=slow]');
+    slow.addEventListener('pointerdown', e => { e.preventDefault(); slowTo = .68; slow.classList.add('on'); });
+    ['pointerup', 'pointerleave', 'pointercancel'].forEach(n => slow.addEventListener(n, () => { slowTo = 1; slow.classList.remove('on'); }));
+    // scratch: grab the spinning disc and drag it round
+    const ang = e => { const r = disc.getBoundingClientRect(); return Math.atan2(e.clientY - (r.top + r.height / 2), e.clientX - (r.left + r.width / 2)) * 180 / Math.PI; };
+    disc.addEventListener('pointerdown', e => { e.preventDefault(); disc.setPointerCapture(e.pointerId); scratch = { a: ang(e), was: !audio.paused, t: 0 }; audio.pause(); });
+    disc.addEventListener('pointermove', e => {
+      if (!scratch) return;
+      let d = ang(e) - scratch.a; if (d > 180) d -= 360; if (d < -180) d += 360; scratch.a += d; rot += d;
+      if (audio.duration) audio.currentTime = Math.min(audio.duration - .05, Math.max(0, audio.currentTime + d / 360 * 1.8));
+      const now = performance.now(); if (Math.abs(d) > 2 && now - scratch.t > 45) { scratch.t = now; tone(160 + Math.min(900, Math.abs(d) * 30), .05, .05, 'sawtooth'); crackle(.04, .05); }
+    });
+    const release = () => { if (!scratch) return; if (scratch.was) audio.play().catch(() => {}); scratch = null; };
+    disc.addEventListener('pointerup', release); disc.addEventListener('pointercancel', release);
+    const loop = now => {
+      const dt = Math.min(.05, (now - last) / 1000); last = now;
+      rate += (slowTo - rate) * Math.min(1, dt * 6); audio.playbackRate = Math.max(.5, rate);
+      if (!scratch && !audio.paused) rot += dt * 200 * rate;
+      disc.style.transform = `rotate(${rot.toFixed(1)}deg)`;
+      pb.textContent = audio.paused ? 'play' : 'pause';
+      fill.style.width = (audio.duration ? audio.currentTime / audio.duration * 100 : 0) + '%';
+      tm.textContent = trackIx < 0 ? 'empty' : `${String(trackIx + 1).padStart(2, '0')} · ${clean(discs[trackIx].name)} · ${fmt(audio.currentTime)} / ${fmt(audio.duration)}`;
+      raf = requestAnimationFrame(loop);
+    };
+    raf = requestAnimationFrame(loop);
+    openPanel('cd player', b, () => { cancelAnimationFrame(raf); document.removeEventListener('cdtrack', onTrack); slowTo = 1; audio.playbackRate = 1; });
   };
 
-  /* ---------- 2. photo book ---------- */
+  /* ---------- 2. photo book: drag the pages over; move a loose print to see what's under it; hold a page up to the light ---------- */
+  const BACKS = ['houston · 2:47 am', "don't lose this one", 'before the show', '16', 'third ward, raining', 'nobody saw this', 'keep it quiet', 'the night it all changed'];
   OPENERS.book = () => {
-    let items = [...M.photos, ...M.bts];
-    const ph = !items.length;
-    if (ph) items = Array.from({ length: 8 }, (_, i) => ({ url: placeholderFrame(i, i < 5 ? `PHOTO 0${i + 1}` : `BTS 0${i - 4}`), name: '' }));
-    const b = h(`<div class="book"><div class="spread"><div class="pg"></div><div class="pg"></div></div>
-      <div class="row" style="margin-top:16px"><button class="btn" data-a="prev">◀</button><span class="cap" id="pgn"></span><button class="btn" data-a="next">▶</button></div>
-      ${ph ? '<div class="ph">placeholder pages · add photos and bts in "fill the room"</div>' : ''}</div>`);
-    const pages = b.querySelectorAll('.pg'), pgn = b.querySelector('#pgn');
+    let photos = M.photos.slice(), bts = M.bts.slice();
+    const ph = !photos.length && !bts.length;
+    if (ph) {
+      photos = Array.from({ length: 5 }, (_, i) => ({ url: placeholderFrame(i, `PHOTO 0${i + 1}`), name: '' }));
+      bts = Array.from({ length: 3 }, (_, i) => ({ url: placeholderFrame(i + 5, `BTS 0${i + 1}`), name: '' }));
+    }
+    if (!photos.length) { photos = bts; bts = []; }
+    // every other photo is a loose print lying on top of a behind-the-scenes shot
+    const pages = photos.map((p, k) => ({ top: p, under: !isVideo(p) && k % 2 === 1 ? bts.shift() || null : null }));
+    bts.forEach(x => pages.push({ top: x, under: null }));
+    pages.forEach((p, k) => { p.back = p.top.name ? clean(p.top.name) : BACKS[k % BACKS.length]; });
+    const b = h(`<div class="book"><div class="spread" id="spread"><div class="pg"></div><div class="pg"></div></div>
+      <div class="row" style="margin-top:16px"><button class="btn" data-a="prev">◀</button><span class="cap" id="pgn"></span><button class="btn" data-a="next">▶</button><button class="btn" data-a="lamp">hold to the light</button></div>
+      <div class="ph">${ph ? 'placeholder pages · add photos and bts in "fill the room"<br>' : ''}drag the page to turn it · some prints are loose</div></div>`);
+    const spread = b.querySelector('#spread'), pgs = spread.querySelectorAll('.pg'), pgn = b.querySelector('#pgn');
     const step = () => innerWidth <= 640 ? 1 : 2;
     let at = 0;
-    function fillPage(pg, it, n) {
+    const media = it => isVideo(it) ? `<video src="${esc(it.url)}" controls playsinline preload="metadata"></video>` : `<img alt="" draggable="false" src="${esc(it.url)}">`;
+    function fillPage(pg, p, n) {
       pg.innerHTML = '';
-      if (!it) return;
-      const m = isVideo(it) ? h(`<video src="${esc(it.url)}" controls playsinline preload="metadata"></video>`) : h(`<img alt="" src="${esc(it.url)}">`);
-      if (m.tagName === 'IMG') m.addEventListener('click', () => viewer([it], 0, 'photo'));
-      if (m.tagName === 'VIDEO') m.addEventListener('play', () => solo('book'));
-      pg.appendChild(m); pg.appendChild(h(`<div class="cap n">${n}</div>`));
+      if (!p) return;
+      if (p.under) pg.appendChild(h(`<div class="underpic">${media(p.under)}</div>`));
+      const print = h(`<div class="print${p.under ? ' loose' : ''}">${media(p.top)}</div>`);
+      if (p.under) print.style.transform = `rotate(${n % 3 - 1.5}deg)`;
+      pg.appendChild(print);
+      pg.appendChild(h(`<div class="back">${esc(p.back)}</div>`));
+      pg.appendChild(h(`<div class="cap n">${n}</div>`));
+      pg.querySelectorAll('video').forEach(v => v.addEventListener('play', () => solo('book')));
+      pg.querySelectorAll('img').forEach(img => img.addEventListener('click', e => { if (!pg.dataset.moved) viewer([{ url: img.src }], 0, 'photo'); }));
+      // a loose print can be slid aside to see what's underneath
+      if (p.under) {
+        let s = null, x = 0, y = 0;
+        print.addEventListener('pointerdown', e => { e.stopPropagation(); e.preventDefault(); print.setPointerCapture(e.pointerId); s = { x: e.clientX - x, y: e.clientY - y, sx: e.clientX, sy: e.clientY }; delete pg.dataset.moved; });
+        print.addEventListener('pointermove', e => {
+          if (!s) return;
+          x = e.clientX - s.x; y = e.clientY - s.y;
+          if (Math.hypot(e.clientX - s.sx, e.clientY - s.sy) > 6) pg.dataset.moved = 1;
+          print.style.transform = `translate(${x}px, ${y}px) rotate(${(x / 30).toFixed(1)}deg)`;
+        });
+        const end = () => { if (s && pg.dataset.moved) crackle(.06, .03); s = null; setTimeout(() => delete pg.dataset.moved, 0); };
+        print.addEventListener('pointerup', end); print.addEventListener('pointercancel', end);
+      }
     }
     function show(dir) {
       const s = step();
-      pages.forEach((pg, k) => { fillPage(pg, items[at + k], at + k + 1); if (dir) { pg.classList.remove('flip'); void pg.offsetWidth; pg.classList.add('flip'); } });
-      pgn.textContent = `${at + 1}${s > 1 && items[at + 1] ? '–' + (at + 2) : ''} / ${items.length}`;
+      pgs.forEach((pg, k) => { fillPage(pg, pages[at + k], at + k + 1); pg.style.transform = ''; if (dir) { pg.classList.remove('flip', 'flipb'); void pg.offsetWidth; pg.classList.add(dir > 0 ? 'flip' : 'flipb'); } });
+      pgn.textContent = `${at + 1}${s > 1 && pages[at + 1] ? '–' + (at + 2) : ''} / ${pages.length}`;
       if (dir) crackle(.12, .05);
     }
-    b.querySelector('[data-a=prev]').onclick = () => { if (at > 0) { at = Math.max(0, at - step()); show(-1); } };
-    b.querySelector('[data-a=next]').onclick = () => { if (at + step() < items.length) { at += step(); show(1); } };
+    const go = d => { if (d > 0 && at + step() < pages.length) { at += step(); show(1); return true; } if (d < 0 && at > 0) { at = Math.max(0, at - step()); show(-1); return true; } return false; };
+    b.querySelector('[data-a=prev]').onclick = () => go(-1);
+    b.querySelector('[data-a=next]').onclick = () => go(1);
+    // turn the page by dragging it
+    let drag = null;
+    spread.addEventListener('pointerdown', e => { if (e.target.closest('video')) return; drag = { x: e.clientX }; spread.setPointerCapture(e.pointerId); });
+    spread.addEventListener('pointermove', e => {
+      if (!drag) return;
+      const dx = e.clientX - drag.x, pg = dx < 0 ? pgs[step() - 1] : pgs[0];
+      if (Math.abs(dx) > 8) { spread.dataset.moved = 1; pgs.forEach(p => p.dataset.moved = 1); }
+      pg.style.transformOrigin = dx < 0 ? 'left center' : 'right center';
+      pg.style.transform = `rotateY(${Math.max(-80, Math.min(80, dx / 3)).toFixed(1)}deg)`;
+    });
+    const endDrag = e => {
+      if (!drag) return;
+      const dx = e.clientX - drag.x; drag = null;
+      pgs.forEach(p => p.style.transform = '');
+      if (Math.abs(dx) > 70) go(dx < 0 ? 1 : -1);
+      setTimeout(() => pgs.forEach(p => delete p.dataset.moved), 0);
+    };
+    spread.addEventListener('pointerup', endDrag); spread.addEventListener('pointercancel', endDrag);
+    // hold the page up to the lamp: the print turns see-through and the writing on the back shows
+    const lamp = b.querySelector('[data-a=lamp]');
+    const lit = on => { spread.classList.toggle('lit', on); lamp.classList.toggle('on', on); if (on) tone(90, .25, .03, 'sine'); };
+    lamp.addEventListener('pointerdown', e => { e.preventDefault(); lit(true); });
+    ['pointerup', 'pointerleave', 'pointercancel'].forEach(n => lamp.addEventListener(n, () => lit(false)));
     show(0);
     players.book = () => b.querySelectorAll('video').forEach(v => v.pause());
     openPanel('photo book', b, () => { players.book(); delete players.book; });
@@ -666,7 +927,7 @@ body.leaving #world { animation: crtoff .45s ease-in forwards; }
       <div class="ph">tap to zoom · drag to look around</div></div>`);
     const view = b.querySelector('.view'), img = b.querySelector('img'), vn = b.querySelector('#vn');
     const apply = () => { img.style.transform = `translate(${tx}px, ${ty}px) scale(${z})`; view.classList.toggle('zoomed', z > 1); };
-    function center() { const r = view.getBoundingClientRect(); tx = -img.offsetWidth / 2; ty = -img.offsetHeight / 2; z = 1; apply(); }
+    function center() { tx = -img.offsetWidth / 2; ty = -img.offsetHeight / 2; z = 1; apply(); }
     function load() { img.src = items[i].url; vn.textContent = `${i + 1} / ${items.length}`; img.onload = center; }
     function zoomAt(cx, cy, nz) {
       const r = view.getBoundingClientRect(), px = cx - r.left - r.width / 2, py = cy - r.top - r.height / 2;
@@ -684,114 +945,203 @@ body.leaving #world { animation: crtoff .45s ease-in forwards; }
     load();
   }
 
-  /* ---------- 4. answering machine ---------- */
+  /* ---------- 3. answering machine: play, rewind, fast-forward; rewind past the start and something else is on the tape ---------- */
   let vmStop = null;
   players.am = () => { if (vmStop) vmStop(); };
-  function fakeVoicemail(i) {
-    // stand-in "voice note": tape hiss and a muffled hummed melody
+  function fakeVoicemail(i, hidden) {
+    // stand-in "voice note": tape hiss and a muffled hummed melody (the hidden one: slower, lower, backwards)
     const a = ac(); if (!a) return { dur: 0, stop() {} };
-    const t0 = a.currentTime + .05, dur = 7 + i, out = a.createGain(); out.gain.value = .9; out.connect(a.destination);
-    const lp = a.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 900; lp.connect(out);
-    const hiss = a.createBufferSource(); hiss.buffer = noise(); hiss.loop = true; const hg = a.createGain(); hg.gain.value = .025; hiss.connect(hg); hg.connect(out);
-    const notes = [[220, 246.9, 261.6, 246.9, 196], [174.6, 196, 220, 196, 164.8], [261.6, 233.1, 220, 196, 220]][i % 3];
+    const t0 = a.currentTime + .05, dur = hidden ? 9 : 7 + i, out = a.createGain(); out.gain.value = .9; out.connect(a.destination);
+    const lp = a.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = hidden ? 500 : 900; lp.connect(out);
+    const hiss = a.createBufferSource(); hiss.buffer = noise(); hiss.loop = true; const hg = a.createGain(); hg.gain.value = hidden ? .05 : .025; hiss.connect(hg); hg.connect(out);
+    let notes = [[220, 246.9, 261.6, 246.9, 196], [174.6, 196, 220, 196, 164.8], [261.6, 233.1, 220, 196, 220]][i % 3];
+    if (hidden) notes = [130.8, 123.5, 98, 110, 92.5, 87.3];
     const o = a.createOscillator(), og = a.createGain(), vib = a.createOscillator(), vg = a.createGain();
-    o.type = 'triangle'; vib.frequency.value = 5.2; vg.gain.value = 3; vib.connect(vg); vg.connect(o.frequency); o.connect(og); og.connect(lp);
+    o.type = 'triangle'; vib.frequency.value = hidden ? 2.1 : 5.2; vg.gain.value = 3; vib.connect(vg); vg.connect(o.frequency); o.connect(og); og.connect(lp);
     og.gain.setValueAtTime(0, t0);
-    notes.forEach((f, k) => { const t = t0 + .6 + k * 1.15; o.frequency.setValueAtTime(f, t); og.gain.linearRampToValueAtTime(.16, t + .12); og.gain.setValueAtTime(.16, t + .85); og.gain.linearRampToValueAtTime(.02, t + 1.1); });
+    notes.forEach((f, k) => {
+      const t = t0 + .6 + k * (hidden ? 1.35 : 1.15); o.frequency.setValueAtTime(f, t);
+      // backwards: each note swells in and stops dead
+      if (hidden) { og.gain.setValueAtTime(.01, t); og.gain.linearRampToValueAtTime(.2, t + 1.2); og.gain.setValueAtTime(0, t + 1.25); }
+      else { og.gain.linearRampToValueAtTime(.16, t + .12); og.gain.setValueAtTime(.16, t + .85); og.gain.linearRampToValueAtTime(.02, t + 1.1); }
+    });
     og.gain.linearRampToValueAtTime(0, t0 + dur - .2);
     [hiss, o, vib].forEach(n => { n.start(t0); n.stop(t0 + dur); });
     return { dur, stop() { try { [hiss, o, vib].forEach(n => n.stop()); } catch (e) {} } };
   }
   OPENERS.am = () => {
-    const real = M.voicemail.filter(isAudio);
-    const msgs = real.length ? real.map(f => ({ label: clean(f.name), url: f.url })) : [
-      { label: 'msg 1 · 2:47 am · placeholder' }, { label: 'msg 2 · unreleased snippet · placeholder' }, { label: 'msg 3 · voice note · placeholder' }];
+    const real = M.voicemail.filter(isAudio), isHidden = f => /hidden|secret/i.test(f.name || '');
+    const listed = real.filter(f => !isHidden(f)), secret = real.find(isHidden);
+    const msgs = listed.length ? listed.map(f => ({ label: clean(f.name), url: f.url, dur: 0 })) : [
+      { label: 'msg 1 · 2:47 am · placeholder', dur: 7 }, { label: 'msg 2 · unreleased snippet · placeholder', dur: 8 }, { label: 'msg 3 · voice note · placeholder', dur: 9 }];
     const b = h(`<div class="am"><div class="top"><div class="cap">16eyes · line 2</div><div class="led blink"></div></div>
       <div class="row" style="justify-content:space-between;margin-bottom:18px"><div class="lcd" id="lcd">${String(msgs.length).padStart(2, '0')}</div><div class="cap" style="text-align:right">new<br>messages</div></div>
-      <div class="tape"><div class="reel"></div><div class="reel"></div></div>
-      <div class="row"><button class="btn" data-a="back">◀</button><button class="btn" data-a="play">play</button><button class="btn" data-a="skip">▶▶</button></div>
-      <p class="say" id="say">press play</p>${real.length ? '' : '<div class="ph">placeholder messages · add voice notes and snippets in "fill the room"</div>'}</div>`);
-    const lcd = b.querySelector('#lcd'), say = b.querySelector('#say'), pb = b.querySelector('[data-a=play]');
-    let i = 0, timer = 0, el2 = null, playing = false;
-    function stop() { playing = false; clearTimeout(timer); if (el2) { el2.pause(); el2 = null; } if (vmStop) { const s = vmStop; vmStop = null; s(); } b.classList.remove('go'); pb.textContent = 'play'; }
-    function next() { i++; if (i >= msgs.length) { stop(); i = 0; say.textContent = 'end of messages'; tone(1000, .7, .05, 'sine'); lcd.textContent = '00'; return; } play(); }
+      <div class="tape"><div class="reel"></div><div class="tapepos"><i></i></div><div class="reel"></div></div>
+      <div class="row"><button class="btn" data-a="rew" aria-label="rewind (hold)">◀◀</button><button class="btn" data-a="play">play</button><button class="btn" data-a="ff" aria-label="fast forward (hold)">▶▶</button></div>
+      <p class="say" id="say">press play · hold ◀◀ ▶▶ to wind the tape</p>${listed.length ? '' : '<div class="ph">placeholder messages · add voice notes and snippets in "fill the room"</div>'}</div>`);
+    const lcd = b.querySelector('#lcd'), say = b.querySelector('#say'), pb = b.querySelector('[data-a=play]'), pos = b.querySelector('.tapepos i');
+    let i = 0, t = 0, timer = 0, el2 = null, playing = false, wind = 0, windRaf = 0, overrun = 0, hidden = false, squeal = null, last = 0;
+    // learn the real lengths so the tape counter is right
+    msgs.forEach(m => { if (m.url) { const p = new Audio(); p.preload = 'metadata'; p.src = m.url; p.onloadedmetadata = () => { m.dur = p.duration || 8; }; } });
+    const durOf = m => m.dur || 8;
+    const total = () => msgs.reduce((s, m) => s + durOf(m), 0);
+    const showPos = () => { const before = msgs.slice(0, i).reduce((s, m) => s + durOf(m), 0); pos.style.left = ((before + t) / total() * 100).toFixed(1) + '%'; };
+    function stop() { playing = false; clearTimeout(timer); if (el2) { t = el2.currentTime || t; el2.pause(); el2 = null; } if (vmStop) { const s = vmStop; vmStop = null; s(); } b.classList.remove('go'); pb.textContent = 'play'; }
+    function next() { i++; t = 0; if (i >= msgs.length) { stop(); i = 0; say.textContent = 'end of messages'; tone(1000, .7, .05, 'sine'); lcd.textContent = '00'; showPos(); return; } play(); }
     function play() {
       stop(); solo('am'); playing = true; b.classList.add('go'); pb.textContent = 'stop';
+      if (hidden) return playHidden();
       lcd.textContent = String(i + 1).padStart(2, '0'); say.textContent = msgs[i].label;
-      tone(1000, .45, .05, 'sine');   // the beep
+      if (t < .2) tone(1000, .45, .05, 'sine');   // the beep, only at the top of a message
+      const startAt = t;
       timer = setTimeout(() => {
         if (!playing) return;
-        if (msgs[i].url) { el2 = new Audio(msgs[i].url); el2.onended = next; el2.play().catch(() => {}); vmStop = () => { if (el2) el2.pause(); }; }
-        else { const v = fakeVoicemail(i); vmStop = v.stop; timer = setTimeout(next, v.dur * 1000 + 200); }
-      }, 650);
+        if (msgs[i].url) { el2 = new Audio(msgs[i].url); el2.currentTime = startAt; el2.onended = next; el2.play().catch(() => {}); vmStop = () => { if (el2) el2.pause(); }; }
+        else { const v = fakeVoicemail(i); vmStop = v.stop; const t1 = performance.now(); timer = setTimeout(next, v.dur * 1000 + 200); }
+      }, t < .2 ? 650 : 120);
     }
+    function playHidden() {
+      lcd.textContent = '--'; say.textContent = secret ? '...' : '... (placeholder · upload a voice note with "hidden" in its name)';
+      b.classList.add('hid');
+      if (secret) { el2 = new Audio(secret.url); el2.onended = () => { hidden = false; b.classList.remove('hid'); stop(); say.textContent = 'end of tape'; }; el2.play().catch(() => {}); vmStop = () => { if (el2) el2.pause(); }; }
+      else { const v = fakeVoicemail(0, true); vmStop = v.stop; timer = setTimeout(() => { hidden = false; b.classList.remove('hid'); stop(); say.textContent = 'end of tape'; }, v.dur * 1000); }
+    }
+    // hold to wind: the tape squeals, the reels race, the counter runs
+    function windLoop(now) {
+      const dt = Math.min(.05, (now - last) / 1000); last = now;
+      if (!wind) return;
+      t += wind * dt * 9;
+      if (t < 0) {
+        if (i > 0) { i--; t = durOf(msgs[i]); }
+        else {
+          t = 0; overrun += dt;
+          if (overrun > 1.4 && !hidden) { hidden = true; lcd.textContent = '--'; say.textContent = 'the tape keeps going...'; tone(60, .4, .05, 'sawtooth'); }
+        }
+      }
+      if (t > durOf(msgs[i])) { if (i < msgs.length - 1) { i++; t = 0; } else t = durOf(msgs[i]); }
+      if (!hidden) lcd.textContent = String(i + 1).padStart(2, '0');
+      if (squeal) squeal.frequency.setTargetAtTime(wind > 0 ? 1400 + t * 60 : 1900 - t * 60, AC.currentTime, .05);
+      showPos();
+      windRaf = requestAnimationFrame(windLoop);
+    }
+    function startWind(dir, btn) {
+      const was = playing; stop(); b.dataset.was = was ? 1 : '';
+      wind = dir; overrun = 0; hidden = false; b.classList.remove('hid'); btn.classList.add('on'); b.classList.add('fast');
+      const a = ac(); if (a) { const o = a.createOscillator(), g = a.createGain(); o.type = 'square'; o.frequency.value = 1500; g.gain.value = .018; o.connect(g); g.connect(a.destination); o.start(); squeal = o; squeal.g = g; }
+      last = performance.now(); windRaf = requestAnimationFrame(windLoop);
+    }
+    function endWind(btn) {
+      if (!wind) return;
+      wind = 0; cancelAnimationFrame(windRaf); btn.classList.remove('on'); b.classList.remove('fast');
+      if (squeal) { try { squeal.stop(); } catch (e) {} squeal = null; }
+      tone(240, .05, .05);   // the clunk of the button coming up
+      if (hidden || b.dataset.was) play(); else say.textContent = msgs[i].label;
+    }
+    [['rew', -1], ['ff', 1]].forEach(([k, dir]) => {
+      const btn = b.querySelector(`[data-a=${k}]`);
+      btn.addEventListener('pointerdown', e => { e.preventDefault(); startWind(dir, btn); });
+      ['pointerup', 'pointerleave', 'pointercancel'].forEach(n => btn.addEventListener(n, () => endWind(btn)));
+      btn.addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === ' ') && !wind) { e.preventDefault(); startWind(dir, btn); } });
+      btn.addEventListener('keyup', e => { if (e.key === 'Enter' || e.key === ' ') endWind(btn); });
+    });
     pb.onclick = () => playing ? stop() : play();
-    b.querySelector('[data-a=skip]').onclick = () => { if (playing) next(); else { i = (i + 1) % msgs.length; say.textContent = msgs[i].label; lcd.textContent = String(i + 1).padStart(2, '0'); } };
-    b.querySelector('[data-a=back]').onclick = () => { i = Math.max(0, playing ? i : i - 1); play(); };
+    showPos();
     players.am = stop;
-    openPanel('answering machine', b, stop);
+    openPanel('answering machine', b, () => { stop(); wind = 0; cancelAnimationFrame(windRaf); if (squeal) { try { squeal.stop(); } catch (e) {} squeal = null; } });
   };
 
-  /* ---------- 5. CRT TV ---------- */
+  /* ---------- 4. CRT TV: turn the dial through the channels; hit the top to clear it; one channel only comes in tuned exactly ---------- */
   OPENERS.tv = () => {
-    const vids = M.tv.filter(isVideo);
-    const chans = vids.length ? vids.map(v => ({ kind: 'video', url: v.url, name: clean(v.name) })) :
-      [{ kind: 'static' }, { kind: 'bars' }, { kind: 'crawl' }, { kind: 'nosignal' }];
-    const b = h(`<div class="tvbox"><div class="scr"><canvas width="320" height="240"></canvas><video playsinline loop hidden></video><div class="osd" id="osd"></div></div>
-      <div class="row" style="margin-top:16px"><button class="btn" data-a="dn">ch ▼</button><button class="btn" data-a="up">ch ▲</button></div>
-      ${vids.length ? '' : '<div class="ph">placeholder channels · add videos in "fill the room"</div>'}</div>`);
-    const cv = b.querySelector('canvas'), g = cv.getContext('2d'), vid = b.querySelector('video'), osd = b.querySelector('#osd');
-    const im = g.createImageData(320, 240);
-    let ch = 0, flipT = 0, raf = 0, osdT = 0;
-    function setCh(n) {
-      ch = (n + chans.length) % chans.length; flipT = performance.now() + 380; crackle(.38, .08);
-      osd.textContent = `CH ${String(ch + 3).padStart(2, '0')}`; osd.style.opacity = 1; clearTimeout(osdT); osdT = setTimeout(() => osd.style.opacity = 0, 1800);
-      vid.pause(); vid.hidden = true;
-      const c = chans[ch];
-      if (c.kind === 'video') { vid.src = c.url; setTimeout(() => { if (chans[ch] === c) { vid.hidden = false; solo('tv'); vid.play().catch(() => {}); } }, 380); }
+    const vids = M.tv.filter(isVideo), isSecret = v => /secret|hidden/i.test(v.name || '');
+    const listed = vids.filter(v => !isSecret(v)), secretVid = vids.find(isSecret);
+    const chans = listed.length ? listed.map(v => ({ kind: 'video', url: v.url, name: clean(v.name) })) :
+      [{ kind: 'bars' }, { kind: 'crawl' }, { kind: 'nosignal' }];
+    // channels sit at even stops round the dial; the secret one sits on its own, between two of them, and needs an exact hand
+    const N = chans.length, stops = chans.map((c, k) => ({ c, at: 30 + k * 300 / Math.max(1, N), tol: 9, n: k + 3 }));
+    const secret = { c: secretVid ? { kind: 'video', url: secretVid.url } : { kind: 'secret' }, at: 30 + 300 / Math.max(1, N) * .5 + 7, tol: 1.6, n: 0 };
+    stops.push(secret);
+    const b = h(`<div class="tvbox" id="tvbox"><button class="tvtop" type="button" aria-label="hit the top of the tv">hit the top</button>
+      <div class="scr"><canvas width="320" height="240"></canvas><video playsinline loop hidden></video><div class="osd" id="osd"></div></div>
+      <div class="row" style="margin-top:16px;gap:22px"><div class="knob" id="knob" role="slider" tabindex="0" aria-label="channel dial" aria-valuemin="0" aria-valuemax="360"><i></i></div><div class="cap">turn the dial<br>· arrows fine-tune</div></div>
+      ${listed.length ? '' : '<div class="ph">placeholder channels · add videos in "fill the room"</div>'}</div>`);
+    const box = b.querySelector('#tvbox') || b, cv = b.querySelector('canvas'), g = cv.getContext('2d'), vid = b.querySelector('video'), osd = b.querySelector('#osd'), knob = b.querySelector('#knob');
+    const im = g.createImageData(320, 240), nz = document.createElement('canvas'); nz.width = 160; nz.height = 120; const ng = nz.getContext('2d'), nim = ng.createImageData(160, 120);
+    let dial = stops[0].at, raf = 0, boost = 0, cur = null, q = 0, lastStop = null, osdT = 0;
+    const tuned = () => {
+      let best = null, bq = 0;
+      for (const s of stops) { const d = Math.abs(dial - s.at), tol = s.tol * (performance.now() < boost ? 2.4 : 1), sq = Math.max(0, 1 - d / tol); if (sq > bq) { bq = sq; best = s; } }
+      return [best, bq];
+    };
+    function setDial(a) {
+      const prev = dial; dial = Math.max(0, Math.min(360, a)); knob.style.setProperty('--a', dial + 'deg'); knob.setAttribute('aria-valuenow', dial.toFixed(0));
+      if (Math.floor(prev / 6) !== Math.floor(dial / 6)) tone(2400, .008, .015);   // the dial's little clicks
     }
-    function staticNoise(a = 1) { const d = im.data; for (let i = 0; i < d.length; i += 4) { const v = Math.random() * 255 * a | 0; d[i] = d[i + 1] = d[i + 2] = v; d[i + 3] = 255; } g.putImageData(im, 0, 0); }
-    function draw(t) {
-      const c = chans[ch];
-      if (t < flipT || c.kind === 'static') staticNoise();
-      else if (c.kind === 'bars') {
-        const shades = [235, 200, 170, 135, 100, 70, 35];
-        shades.forEach((s, k) => { g.fillStyle = `rgb(${s},${s},${s})`; g.fillRect(k * 320 / 7, 0, 320 / 7 + 1, 170); });
-        g.fillStyle = '#111'; g.fillRect(0, 170, 320, 70); g.fillStyle = '#fff'; g.font = '700 18px Helvetica, Arial'; g.fillText('16EYES', 120, 212);
-      } else if (c.kind === 'crawl') {
-        g.fillStyle = '#000'; g.fillRect(0, 0, 320, 240); g.fillStyle = '#eee'; g.font = '700 44px Helvetica, Arial';
-        const x = 320 - ((t / 14) % 1100); g.fillText('16EYES · HOUSTON · LATE NIGHT ·', x, 136);
-      } else if (c.kind === 'nosignal') {
-        staticNoise(.18); g.fillStyle = '#fff'; g.font = '700 22px Helvetica, Arial'; g.textAlign = 'center';
-        g.fillText('NO SIGNAL', 160, 116); g.font = '700 14px Helvetica, Arial'; g.fillText(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), 160, 142); g.textAlign = 'left';
+    function staticInto(a) { const d = nim.data; for (let i = 0; i < d.length; i += 4) { const v = Math.random() * 255 | 0; d[i] = d[i + 1] = d[i + 2] = v; d[i + 3] = 255; } ng.putImageData(nim, 0, 0); g.globalAlpha = a; g.drawImage(nz, 0, 0, 320, 240); g.globalAlpha = 1; }
+    function draw(tm) {
+      const [s, sq] = tuned(); q += ((s ? sq : 0) - q) * .25;
+      const c = s && q > .05 ? s.c : null;
+      if (s !== lastStop) {
+        lastStop = s; vid.pause(); vid.hidden = true;
+        if (s && s.c.kind === 'video') { vid.src = s.c.url; vid.hidden = false; solo('tv'); vid.play().catch(() => {}); }
       }
-      cv.style.opacity = (c.kind === 'video' && t >= flipT) ? 0 : 1;
+      if (s && q > .35) { osd.textContent = s.n ? `CH ${String(s.n).padStart(2, '0')}` : 'CH 00'; osd.style.opacity = 1; clearTimeout(osdT); osdT = setTimeout(() => osd.style.opacity = 0, 1500); }
+      g.fillStyle = '#000'; g.fillRect(0, 0, 320, 240);
+      if (c && c.kind === 'bars') {
+        [235, 200, 170, 135, 100, 70, 35].forEach((v, k) => { g.fillStyle = `rgb(${v},${v},${v})`; g.fillRect(k * 320 / 7, 0, 320 / 7 + 1, 170); });
+        g.fillStyle = '#111'; g.fillRect(0, 170, 320, 70); g.fillStyle = '#fff'; g.font = '700 18px Helvetica, Arial'; g.fillText('16EYES', 120, 212);
+      } else if (c && c.kind === 'crawl') {
+        g.fillStyle = '#eee'; g.font = '700 44px Helvetica, Arial'; g.fillText('16EYES · HOUSTON · LATE NIGHT ·', 320 - ((tm / 14) % 1100), 136);
+      } else if (c && c.kind === 'nosignal') {
+        g.fillStyle = '#fff'; g.font = '700 22px Helvetica, Arial'; g.textAlign = 'center'; g.fillText('NO SIGNAL', 160, 116);
+        g.font = '700 14px Helvetica, Arial'; g.fillText(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), 160, 142); g.textAlign = 'left';
+      } else if (c && c.kind === 'secret') {
+        g.fillStyle = '#fff'; g.textAlign = 'center'; g.font = '700 15px Helvetica, Arial'; g.fillText('YOU WERE NOT SUPPOSED TO FIND THIS', 160, 104);
+        g.font = '700 40px Helvetica, Arial'; if ((tm / 600 | 0) % 4) g.fillText('11 · 13', 160, 152); g.font = '700 10px Helvetica, Arial'; g.fillText('(placeholder · upload a video with "secret" in its name)', 160, 220); g.textAlign = 'left';
+      }
+      const video = c && c.kind === 'video';
+      cv.style.opacity = video ? Math.min(1, 1.15 - q).toFixed(2) : 1;
+      if (!video || q < 1) staticInto(video ? 1 : Math.min(1, 1.1 - q));
+      vid.style.filter = `grayscale(1) contrast(1.15) blur(${((1 - q) * 3).toFixed(1)}px)`;
       raf = requestAnimationFrame(draw);
     }
-    b.querySelector('[data-a=up]').onclick = () => setCh(ch + 1);
-    b.querySelector('[data-a=dn]').onclick = () => setCh(ch - 1);
-    const keys = e => { if (e.key === 'ArrowUp') setCh(ch + 1); if (e.key === 'ArrowDown') setCh(ch - 1); };
+    // the dial: drag it round, or wheel / arrow keys to fine-tune
+    let grab = null;
+    const ang = e => { const r = knob.getBoundingClientRect(); return Math.atan2(e.clientY - (r.top + r.height / 2), e.clientX - (r.left + r.width / 2)) * 180 / Math.PI; };
+    knob.addEventListener('pointerdown', e => { e.preventDefault(); knob.setPointerCapture(e.pointerId); grab = ang(e); });
+    knob.addEventListener('pointermove', e => { if (grab === null) return; let d = ang(e) - grab; if (d > 180) d -= 360; if (d < -180) d += 360; grab += d; setDial(dial + d * .5); });
+    ['pointerup', 'pointercancel'].forEach(n => knob.addEventListener(n, () => grab = null));
+    knob.addEventListener('wheel', e => { e.preventDefault(); setDial(dial + (e.deltaY > 0 ? .5 : -.5)); }, { passive: false });
+    const keys = e => { if (e.key === 'ArrowRight' || e.key === 'ArrowUp') setDial(dial + (e.shiftKey ? 5 : .5)); if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') setDial(dial - (e.shiftKey ? 5 : .5)); };
     addEventListener('keydown', keys);
+    // hit the top: thump, the set jumps, the picture clears for a moment
+    b.querySelector('.tvtop').addEventListener('click', () => {
+      tone(70, .12, .09, 'sine'); crackle(.25, .07); boost = performance.now() + 1600;
+      box.classList.remove('hit'); void box.offsetWidth; box.classList.add('hit');
+    });
     players.tv = () => vid.pause();
+    setDial(dial); crackle(.38, .08);
     openPanel('tv', b, () => { cancelAnimationFrame(raf); vid.pause(); vid.removeAttribute('src'); removeEventListener('keydown', keys); delete players.tv; });
-    setCh(0); raf = requestAnimationFrame(draw);
+    raf = requestAnimationFrame(draw);
   };
 
-  /* ---------- 6. locked door ---------- */
+  /* ---------- 5. locked door: the code, or the key hidden in the room ---------- */
   OPENERS.door = () => {
     const b = h(`<div><div class="dr"><div class="frame" id="frame"><div class="leaf"><i></i></div></div>
       <div><div class="code" id="code">····</div><div class="pad">${[1,2,3,4,5,6,7,8,9].map(n => `<button class="btn" data-k="${n}">${n}</button>`).join('')}<button class="btn w" data-k="c">clr</button><button class="btn" data-k="0">0</button><button class="btn w" data-k="e">enter</button></div>
-      <div class="cap" style="margin-top:14px;text-align:center" id="dmsg">the code drops with the merch</div></div></div><div class="behind" id="behind" hidden></div></div>`);
+      ${hasKey ? '<button class="btn usekey" data-a="key">use the key</button>' : ''}
+      <div class="cap" style="margin-top:14px;text-align:center" id="dmsg">${hasKey ? 'the key might fit' : 'the code drops with the merch'}</div></div></div><div class="behind" id="behind" hidden></div></div>`);
     const code = b.querySelector('#code'), dmsg = b.querySelector('#dmsg'), frame = b.querySelector('#frame'), behind = b.querySelector('#behind');
     let v = '';
     const show = () => code.textContent = (v + '····').slice(0, Math.max(4, v.length)).replace(/\d/g, '•');
-    async function enter() {
-      if (!v) return;
+    async function enter(withKey) {
+      if (!v && !withKey) return;
       dmsg.textContent = '...';
-      let r = null; try { r = await fetch('/api/deep/door', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code: v }) }); } catch (e) {}
+      let r = null; try { r = await fetch('/api/deep/door', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(withKey ? { key: 'found' } : { code: v }) }); } catch (e) {}
       const d = r ? await r.json().catch(() => ({})) : {};
       if (d.ok) {
-        [0, .09, .18].forEach(w => tone(140 + w * 600, .06, .06, 'square', w)); setTimeout(() => crackle(1.2, .05), 300);
+        if (withKey) { tone(900, .04, .05); setTimeout(() => tone(600, .08, .05), 140); setTimeout(() => tone(180, .2, .06, 'square'), 420); }
+        else [0, .09, .18].forEach(w => tone(140 + w * 600, .06, .06, 'square', w));
+        setTimeout(() => crackle(1.2, .05), 300);
         frame.classList.add('open'); $('o-door').classList.add('door-open'); dmsg.textContent = 'open';
         const items = d.items || [];
         behind.innerHTML = items.length ? items.map(it => isVideo(it) ? `<video src="${esc(it.url)}" controls playsinline></video>` : isAudio(it) ? `<audio src="${esc(it.url)}" controls></audio>` : `<img alt="" src="${esc(it.url)}">`).join('')
@@ -799,7 +1149,7 @@ body.leaving #world { animation: crtoff .45s ease-in forwards; }
         setTimeout(() => { behind.hidden = false; behind.scrollIntoView({ behavior: 'smooth' }); }, 900);
       } else {
         tone(110, .35, .06, 'sawtooth'); code.classList.remove('shake'); void code.offsetWidth; code.classList.add('shake');
-        dmsg.textContent = r && r.status === 429 ? 'too many tries. wait a few minutes.' : 'wrong code';
+        dmsg.textContent = r && r.status === 429 ? 'too many tries. wait a few minutes.' : withKey ? "the key won't turn" : 'wrong code';
         v = ''; show();
       }
     }
@@ -808,6 +1158,7 @@ body.leaving #world { animation: crtoff .45s ease-in forwards; }
       if (x === 'c') v = ''; else if (x === 'e') return enter(); else if (v.length < 8) { v += x; tone(700 + +x * 40, .06, .04); }
       show();
     }));
+    b.querySelector('[data-a=key]')?.addEventListener('click', () => enter(true));
     const keys = e => { if (/^\d$/.test(e.key) && v.length < 8) { v += e.key; tone(700, .05, .04); show(); } else if (e.key === 'Enter') enter(); else if (e.key === 'Backspace') { v = v.slice(0, -1); show(); } };
     addEventListener('keydown', keys);
     openPanel('door', b, () => removeEventListener('keydown', keys));
