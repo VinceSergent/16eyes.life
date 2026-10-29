@@ -58,6 +58,17 @@ button { font-family: var(--sans); }
 .hud { position: fixed; z-index: 10; font: 700 9px var(--sans); letter-spacing: .28em; text-transform: uppercase; color: #777; text-decoration: none; }
 .hud:hover, .hud:focus-visible { color: #fff; outline: none; }
 #home { top: calc(14px + env(safe-area-inset-top, 0px)); left: 16px; }
+#home { font-size: 10px; color: #bbb; padding: 6px 8px; margin: -6px -8px; }
+#exit { pointer-events: all; cursor: pointer; outline: none; }
+#exit .sign { transition: transform .25s cubic-bezier(.2,.8,.2,1); transform-box: fill-box; transform-origin: center top; }
+#exit .word { fill: #f2f2f2; font: 700 30px var(--sans); letter-spacing: .2em; text-anchor: middle; filter: drop-shadow(0 0 6px rgba(255,255,255,.8)); animation: buzz 7s infinite steps(1); }
+#exit:hover .sign, #exit:focus-visible .sign { transform: rotate(-2deg) translateY(3px); }
+#exit:hover .word, #exit:focus-visible .word { filter: drop-shadow(0 0 12px #fff); }
+@keyframes buzz { 0%, 61%, 63%, 64.5%, 100% { opacity: 1; } 62%, 64% { opacity: .25; } }
+#off { position: fixed; inset: 0; z-index: 60; background: #000; opacity: 0; pointer-events: none; transition: opacity .25s .35s; }
+body.leaving #off { opacity: 1; pointer-events: all; }
+body.leaving #world { animation: crtoff .45s ease-in forwards; }
+@keyframes crtoff { 0% { transform: none; filter: brightness(1); } 60% { transform: scale(1, .006); filter: brightness(4); } 100% { transform: scale(0, .006); filter: brightness(8); } }
 #fill { top: calc(14px + env(safe-area-inset-top, 0px)); right: 16px; }
 #hint { left: 50%; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); white-space: nowrap; color: #555; transition: opacity 1.5s; }
 
@@ -168,7 +179,7 @@ input[type=range].v { writing-mode: vertical-lr; direction: rtl; width: 26px; he
 <div id="dark" aria-hidden="true"></div>
 <div class="lines" aria-hidden="true"></div><div class="vig" aria-hidden="true"></div>
 
-<a class="hud" id="home" href="/">← 16eyes</a>
+<a class="hud" id="home" href="/">← exit</a>
 <a class="hud" id="fill" href="/deep/upload">fill the room</a>
 <div class="hud" id="hint">pick something up</div>
 
@@ -306,6 +317,7 @@ input[type=range].v { writing-mode: vertical-lr; direction: rtl; width: 26px; he
 </div>
 
 <div id="panels"></div>
+<div id="off" aria-hidden="true"></div>
 
 <script>
 (() => {
@@ -419,6 +431,20 @@ input[type=range].v { writing-mode: vertical-lr; direction: rtl; width: 26px; he
     }
     for (let i = 1; i < 4; i++) { const k = Math.pow(i / 4, 1.6), y = y1 + (H - y1) * k, xl = x0 - x0 * k, xr = x1 + (W - x1) * k; el('line', { x1: xl, y1: y, x2: xr, y2: y, class: 'wall soft' }, shell); }
 
+    // a lit EXIT sign hung from the ceiling over the left of the room: the way back out
+    $('exit')?.remove();
+    const ex = el('g', { id: 'exit', tabindex: 0, role: 'link', 'aria-label': 'Exit to 16eyes' }, room);
+    const sx = x0 + ww * .1, sy = y0 - 46, sw = 150, sh = 48, k = L === LAYOUT.port ? 1.5 : 1;   // bigger on phones
+    ex.setAttribute('transform', `translate(${sx} ${sy}) scale(${k}) translate(${-sx} ${-sy})`);
+    el('line', { x1: sx - sw * .32, y1: sy - 40, x2: sx - sw * .32, y2: sy, stroke: '#444', 'stroke-width': 1.2 }, ex);
+    el('line', { x1: sx + sw * .32, y1: sy - 40, x2: sx + sw * .32, y2: sy, stroke: '#444', 'stroke-width': 1.2 }, ex);
+    const sign = el('g', { class: 'sign' }, ex);
+    el('ellipse', { cx: sx, cy: sy + sh / 2, rx: sw * .9, ry: sh * 1.4, fill: 'url(#bglow)', opacity: .7 }, sign);
+    el('rect', { x: sx - sw / 2, y: sy, width: sw, height: sh, rx: 3, fill: '#0b0b0b', stroke: '#9a9a9a', 'stroke-width': 1.4 }, sign);
+    el('text', { x: sx + 4, y: sy + sh / 2 + 11, class: 'word' }, sign).textContent = 'EXIT';
+    ex.addEventListener('click', leave);
+    ex.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); leave(); } });
+
     // the bulb on its cord, hung from the ceiling
     bulb.innerHTML = '';
     pivot = { x: W / 2, y: 0 }; cordLen = y0 + 70;
@@ -441,6 +467,18 @@ input[type=range].v { writing-mode: vertical-lr; direction: rtl; width: 26px; he
       shades[id] = { pos, contact: el('ellipse', { fill: 'url(#shade)' }, $('shadows')), cast: el('ellipse', { fill: 'url(#shade)' }, $('shadows')) };
     }
   }
+  // the way out: the picture collapses like a CRT switching off, then back to the homepage
+  function leave(e) {
+    if (e) e.preventDefault();
+    if (document.body.classList.contains('leaving')) return;
+    document.body.classList.add('leaving');
+    tone(1400, .05, .03, 'sine'); crackle(.25, .05);
+    setTimeout(() => { location.href = '/'; }, reduce ? 0 : 650);
+  }
+  $('home').addEventListener('click', leave);
+  // coming back with the browser's back button shouldn't leave the screen dark
+  addEventListener('pageshow', e => { if (e.persisted) document.body.classList.remove('leaving'); });
+
   drawShell(); addEventListener('resize', drawShell);
 
   /* ---------- the bulb: swings on its cord and flickers; its light and the shadows follow it ---------- */
