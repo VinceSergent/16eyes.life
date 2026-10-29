@@ -1,9 +1,8 @@
 // The locked door inside the room. Right code (or the key from the room): send back what's behind it (anything uploaded to the "door" folder).
 import { list } from "@vercel/blob";
-import { checkDoorCode, isAuthed, tooManyTries, noStore } from "../../../../lib/deep.js";
+import { checkDoorCode, tooManyTries, noStore } from "../../../../lib/deep.js";
 
 export async function POST(request) {
-  if (!isAuthed(request)) return Response.json({ ok: false }, { status: 401, headers: noStore });
   if (await tooManyTries(request, "door")) return Response.json({ ok: false, error: "slow_down" }, { status: 429, headers: noStore });
   let body;
   try { body = await request.json(); } catch { return Response.json({ ok: false }, { status: 400, headers: noStore }); }

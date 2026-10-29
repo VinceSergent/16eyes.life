@@ -831,7 +831,7 @@ body.off #key { display: inline; }
         }
       }
       const r = oc.startRendering();
-      return (r && r.then ? r : new Promise(res => { oc.oncomplete = e => res(e.renderedBuffer); })).then(buf => ({ url: toWav(buf), name: `placeholder ${n + 1}` }));
+      return (r && r.then ? r : new Promise(res => { oc.oncomplete = e => res(e.renderedBuffer); })).then(buf => ({ url: toWav(buf), name: `untitled ${n + 1}` }));
     })).catch(() => []);
     return fakeTracks;
   }
@@ -846,7 +846,7 @@ body.off #key { display: inline; }
       </div>
       <div class="shelf"><div class="cap">the shelf</div>
         <div class="cases">${discs.map((t, i) => `<button class="case" data-i="${i}" type="button"><span class="mini"></span><b>${String(i + 1).padStart(2, '0')}</b><em>${esc(clean(t.name))}</em></button>`).join('')}</div>
-        <div class="ph">${real.length ? '' : 'placeholder songs · add real ones in "fill the room"<br>'}drag a cd into the player · drag the spinning disc to scratch</div></div></div>`);
+        <div class="ph">drag a cd into the player · drag the spinning disc to scratch</div></div></div>`);
     const tray = b.querySelector('#tray'), disc = b.querySelector('#disc'), fill = b.querySelector('.bar i'), tm = b.querySelector('#tm'), pb = b.querySelector('[data-a=play]');
     let raf = 0, rot = 0, rate = 1, slowTo = 1, scratch = null, last = performance.now();
     const shelfMark = () => b.querySelectorAll('.case').forEach((c, k) => c.classList.toggle('out', k === trackIx));
@@ -920,7 +920,7 @@ body.off #key { display: inline; }
     pages.forEach((p, k) => { p.back = p.top.name ? clean(p.top.name) : BACKS[k % BACKS.length]; });
     const b = h(`<div class="book"><div class="spread" id="spread"><div class="pg"></div><div class="pg"></div></div>
       <div class="row" style="margin-top:16px"><button class="btn" data-a="prev">◀</button><span class="cap" id="pgn"></span><button class="btn" data-a="next">▶</button><button class="btn" data-a="lamp">hold to the light</button></div>
-      <div class="ph">${ph ? 'placeholder pages · add photos and bts in "fill the room"<br>' : ''}drag the page to turn it · some prints are loose</div></div>`);
+      <div class="ph">drag the page to turn it · some prints are loose</div></div>`);
     const spread = b.querySelector('#spread'), pgs = spread.querySelectorAll('.pg'), pgn = b.querySelector('#pgn');
     const step = () => innerWidth <= 640 ? 1 : 2;
     let at = 0;
@@ -1042,12 +1042,12 @@ body.off #key { display: inline; }
     const real = M.voicemail.filter(isAudio), isHidden = f => /hidden|secret/i.test(f.name || '');
     const listed = real.filter(f => !isHidden(f)), secret = real.find(isHidden);
     const msgs = listed.length ? listed.map(f => ({ label: clean(f.name), url: f.url, dur: 0 })) : [
-      { label: 'msg 1 · 2:47 am · placeholder', dur: 7 }, { label: 'msg 2 · unreleased snippet · placeholder', dur: 8 }, { label: 'msg 3 · voice note · placeholder', dur: 9 }];
+      { label: 'msg 1 · 2:47 am', dur: 7 }, { label: 'msg 2 · unreleased snippet', dur: 8 }, { label: 'msg 3 · voice note', dur: 9 }];
     const b = h(`<div class="am"><div class="top"><div class="cap">16eyes · line 2</div><div class="led blink"></div></div>
       <div class="row" style="justify-content:space-between;margin-bottom:18px"><div class="lcd" id="lcd">${String(msgs.length).padStart(2, '0')}</div><div class="cap" style="text-align:right">new<br>messages</div></div>
       <div class="tape"><div class="reel"></div><div class="tapepos"><i></i></div><div class="reel"></div></div>
       <div class="row"><button class="btn" data-a="rew" aria-label="rewind (hold)">◀◀</button><button class="btn" data-a="play">play</button><button class="btn" data-a="ff" aria-label="fast forward (hold)">▶▶</button></div>
-      <p class="say" id="say">press play · hold ◀◀ ▶▶ to wind the tape</p>${listed.length ? '' : '<div class="ph">placeholder messages · add voice notes and snippets in "fill the room"</div>'}</div>`);
+      <p class="say" id="say">press play · hold ◀◀ ▶▶ to wind the tape</p></div>`);
     const lcd = b.querySelector('#lcd'), say = b.querySelector('#say'), pb = b.querySelector('[data-a=play]'), pos = b.querySelector('.tapepos i');
     let i = 0, t = 0, timer = 0, el2 = null, playing = false, wind = 0, windRaf = 0, overrun = 0, hidden = false, squeal = null, last = 0;
     // learn the real lengths so the tape counter is right
@@ -1070,7 +1070,7 @@ body.off #key { display: inline; }
       }, t < .2 ? 650 : 120);
     }
     function playHidden() {
-      lcd.textContent = '--'; say.textContent = secret ? '...' : '... (placeholder · upload a voice note with "hidden" in its name)';
+      lcd.textContent = '--'; say.textContent = '...';
       b.classList.add('hid');
       if (secret) { el2 = new Audio(); lofiEl(el2, 'am'); el2.src = secret.url; el2.onended = () => { hidden = false; b.classList.remove('hid'); stop(); say.textContent = 'end of tape'; }; el2.play().catch(() => {}); vmStop = () => { if (el2) el2.pause(); }; }
       else { const v = fakeVoicemail(0, true); vmStop = v.stop; timer = setTimeout(() => { hidden = false; b.classList.remove('hid'); stop(); say.textContent = 'end of tape'; }, v.dur * 1000); }
@@ -1132,7 +1132,7 @@ body.off #key { display: inline; }
     const b = h(`<div class="tvbox" id="tvbox"><button class="tvtop" type="button" aria-label="hit the top of the tv">hit the top</button>
       <div class="scr"><canvas width="320" height="240"></canvas><video playsinline loop hidden></video><div class="osd" id="osd"></div></div>
       <div class="row" style="margin-top:16px;gap:22px"><div class="knob" id="knob" role="slider" tabindex="0" aria-label="channel dial" aria-valuemin="0" aria-valuemax="360"><i></i></div><div class="cap">turn the dial<br>· arrows fine-tune</div></div>
-      ${listed.length ? '' : '<div class="ph">placeholder channels · add videos in "fill the room"</div>'}</div>`);
+      </div>`);
     const box = b.querySelector('#tvbox') || b, cv = b.querySelector('canvas'), g = cv.getContext('2d'), vid = b.querySelector('video'), osd = b.querySelector('#osd'), knob = b.querySelector('#knob');
     const im = g.createImageData(320, 240), nz = document.createElement('canvas'); nz.width = 160; nz.height = 120; const ng = nz.getContext('2d'), nim = ng.createImageData(160, 120);
     let dial = stops[0].at, raf = 0, boost = 0, cur = null, q = 0, lastStop = null, osdT = 0;
@@ -1165,7 +1165,7 @@ body.off #key { display: inline; }
         g.font = '700 14px Helvetica, Arial'; g.fillText(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), 160, 142); g.textAlign = 'left';
       } else if (c && c.kind === 'secret') {
         g.fillStyle = '#fff'; g.textAlign = 'center'; g.font = '700 15px Helvetica, Arial'; g.fillText('YOU WERE NOT SUPPOSED TO FIND THIS', 160, 104);
-        g.font = '700 40px Helvetica, Arial'; if ((tm / 600 | 0) % 4) g.fillText('11 · 13', 160, 152); g.font = '700 10px Helvetica, Arial'; g.fillText('(placeholder · upload a video with "secret" in its name)', 160, 220); g.textAlign = 'left';
+        g.font = '700 40px Helvetica, Arial'; if ((tm / 600 | 0) % 4) g.fillText('11 · 13', 160, 152); g.textAlign = 'left';
       }
       const video = c && c.kind === 'video';
       cv.style.opacity = video ? Math.min(1, 1.15 - q).toFixed(2) : 1;
@@ -1214,7 +1214,7 @@ body.off #key { display: inline; }
         frame.classList.add('open'); $('o-door').classList.add('door-open'); dmsg.textContent = 'open';
         const items = d.items || [];
         behind.innerHTML = items.length ? items.map(it => isVideo(it) ? `<video src="${esc(it.url)}" controls playsinline></video>` : isAudio(it) ? `<audio src="${esc(it.url)}" controls></audio>` : `<img alt="" src="${esc(it.url)}">`).join('')
-          : `<div style="font-weight:700;font-size:22px">you found it.</div><div class="ph">placeholder · whatever goes in "behind the locked door" shows up here</div>`;
+          : `<div style="font-weight:700;font-size:22px">you found it.</div>`;
         setTimeout(() => { behind.hidden = false; behind.scrollIntoView({ behavior: 'smooth' }); }, 900);
       } else {
         tone(110, .35, .06, 'sawtooth'); code.classList.remove('shake'); void code.offsetWidth; code.classList.add('shake');
@@ -1245,7 +1245,7 @@ body.off #key { display: inline; }
       <div class="fadr"><div class="meter"><i></i></div><input class="v" type="range" min="0" max="1" step="0.01" value="0.8" aria-label="${esc(n)} volume"></div>
       <div class="row"><button class="btn" data-m>m</button><button class="btn" data-s>s</button></div></div>`).join('')}</div>
       <div class="trans"><button class="btn" id="tp">play</button><label class="cap">speed <input id="spd" type="range" min="0.7" max="1" step="0.01" value="1"></label><span class="cap" id="spv">1.00x</span></div>
-      <div class="ph" id="dph">${has ? 'loading stems…' : 'placeholder stems · upload drums, vocals, bass and instruments in "fill the room"'}</div></div>`);
+      <div class="ph" id="dph">${has ? 'loading stems…' : ''}</div></div>`);
     const a = ac(); if (!a) { openPanel('studio', b); return; }
     const master = a.createGain(); master.gain.value = .9; master.connect(a.destination);
     const ch = names.map(() => { const g = a.createGain(), an = a.createAnalyser(); an.fftSize = 256; g.connect(an); an.connect(master); return { g, an, vol: .8, mute: false, solo: false, buf: new Float32Array(256) }; });
@@ -1261,7 +1261,7 @@ body.off #key { display: inline; }
     spd.oninput = () => { speed = +spd.value; spv.textContent = speed.toFixed(2) + 'x'; sources.forEach(s => s.playbackRate && s.playbackRate.setTargetAtTime(speed, a.currentTime, .05)); };
 
     // real stems: decode them all, then start every one at the same instant
-    const loadReal = has ? Promise.all(slots.map(f => f ? fetch(f.url).then(r => r.arrayBuffer()).then(x => a.decodeAudioData(x)) : null)).then(x => { bufs = x; b.querySelector('#dph').textContent = slots.every(Boolean) ? '' : 'missing: ' + names.filter((n, i) => !slots[i]).join(', '); }).catch(() => { b.querySelector('#dph').textContent = "couldn't load the stems"; }) : null;
+    const loadReal = has ? Promise.all(slots.map(f => f ? fetch(f.url).then(r => r.arrayBuffer()).then(x => a.decodeAudioData(x)) : null)).then(x => { bufs = x; b.querySelector('#dph').textContent = ''; }).catch(() => { b.querySelector('#dph').textContent = "couldn't load the stems"; }) : null;
 
     // placeholder stems: a slow loop, scheduled a little ahead
     const BARS = [[110, 130.8, 164.8], [87.3, 110, 130.8], [130.8, 164.8, 196], [98, 123.5, 146.8]];   // Am F C G
