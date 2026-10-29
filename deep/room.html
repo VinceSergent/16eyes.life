@@ -50,7 +50,10 @@ button { font-family: var(--sans); }
   .obj .lbl { opacity: .75; }
   /* phones: no lift on tap, so Safari never parks the drawings on a blurry, low-res layer */
   .obj .art, .obj:hover .art, .obj:focus-visible .art { transition: none; transform: none; filter: url(#rough); }
+  /* the squashed-line power-on leaves iPhone Safari drawing the room from a squashed, smeared copy: fade in instead */
+  #world { animation-name: fadeon; }
 }
+@keyframes fadeon { from { opacity: 0; } }
 .blink { animation: blink 1.1s steps(1) infinite; }
 @keyframes blink { 50% { opacity: 0; } }
 .spin { transform-box: fill-box; transform-origin: center; }
@@ -475,6 +478,7 @@ input[type=range].v { writing-mode: vertical-lr; direction: rtl; width: 26px; he
   function leave(e) {
     if (e) e.preventDefault();
     if (document.body.classList.contains('leaving')) return;
+    $('world').style.animation = '';
     document.body.classList.add('leaving');
     tone(1400, .05, .03, 'sine'); crackle(.25, .05);
     setTimeout(() => { location.href = '/'; }, reduce ? 0 : 650);
@@ -488,6 +492,8 @@ input[type=range].v { writing-mode: vertical-lr; direction: rtl; width: 26px; he
   /* ---------- the bulb: swings on its cord and flickers; its light and the shadows follow it ---------- */
   let burst = [], nextBurst = performance.now() + 2500, lastT = performance.now();
   const darkEl = $('dark'), world = $('world');
+  // once the power-on is done, drop it so the browser redraws the room at full sharpness
+  world.addEventListener('animationend', e => { if (e.target === world && !document.body.classList.contains('leaving')) world.style.animation = 'none'; });
   const shake = !matchMedia('(hover: none)').matches;   // the room jolting on brownouts blurs everything in iPhone Safari
   function burstPattern() {
     const p = [];
