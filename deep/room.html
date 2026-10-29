@@ -222,8 +222,6 @@ body.off #key { display: inline; }
 .spread.lit .pg img { filter: grayscale(1) brightness(1.9) contrast(.5); }
 .spread.lit .pg .print.loose { opacity: .55; }
 .spread.lit .pg .back { opacity: .7; }
-.flipb { animation: flipb .45s ease-out; transform-origin: right center; }
-@keyframes flipb { from { transform: rotateY(70deg); opacity: .2; } }
 
 /* answering machine: a tape counter, winding */
 .tape { gap: 10px; }
@@ -950,7 +948,8 @@ body.off #key { display: inline; }
     }
     function show(dir) {
       const s = step();
-      pgs.forEach((pg, k) => { fillPage(pg, pages[at + k], at + k + 1); pg.style.transform = ''; if (dir) { pg.classList.remove('flip', 'flipb'); void pg.offsetWidth; pg.classList.add(dir > 0 ? 'flip' : 'flipb'); } });
+      // only the right-hand page turns, swinging on the spine
+      pgs.forEach((pg, k) => { fillPage(pg, pages[at + k], at + k + 1); pg.style.transform = ''; if (dir && k === s - 1) { pg.classList.remove('flip'); void pg.offsetWidth; pg.classList.add('flip'); } });
       pgn.textContent = `${at + 1}${s > 1 && pages[at + 1] ? '–' + (at + 2) : ''} / ${pages.length}`;
       if (dir) crackle(.12, .05);
     }
@@ -962,10 +961,10 @@ body.off #key { display: inline; }
     spread.addEventListener('pointerdown', e => { if (e.target.closest('video')) return; drag = { x: e.clientX }; spread.setPointerCapture(e.pointerId); });
     spread.addEventListener('pointermove', e => {
       if (!drag) return;
-      const dx = e.clientX - drag.x, pg = dx < 0 ? pgs[step() - 1] : pgs[0];
+      const dx = e.clientX - drag.x, pg = pgs[step() - 1];
       if (Math.abs(dx) > 8) { spread.dataset.moved = 1; pgs.forEach(p => p.dataset.moved = 1); }
-      pg.style.transformOrigin = dx < 0 ? 'left center' : 'right center';
-      pg.style.transform = `rotateY(${Math.max(-80, Math.min(80, dx / 3)).toFixed(1)}deg)`;
+      pg.style.transformOrigin = 'left center';
+      pg.style.transform = `rotateY(${(-Math.min(80, Math.abs(dx) / 3)).toFixed(1)}deg)`;
     });
     const endDrag = e => {
       if (!drag) return;
