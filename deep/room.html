@@ -154,28 +154,14 @@ body.leaving #world { animation: crtoff .45s ease-in forwards; }
 .leaf i { position: absolute; right: 16px; top: 52%; width: 12px; height: 12px; border-radius: 50%; border: 1.5px solid #ccc; }
 .open .leaf { transform: rotateY(-100deg); }
 .pad { display: grid; grid-template-columns: repeat(3, 56px); gap: 8px; }
-.pad .btn { height: 52px; font-size: 16px; }
+.pad .btn { height: 52px; font-size: 16px; padding: 0; min-width: 0; letter-spacing: 0; }
+.pad .btn.w { font-size: 9px; letter-spacing: .16em; text-indent: .16em; }   /* clr and enter fit inside their keys, centred */
 .code { font: 700 30px var(--sans); letter-spacing: .5em; text-align: center; margin-bottom: 14px; min-height: 40px; padding-left: .5em; }
 .shake { animation: shake .4s; }
 @keyframes shake { 20%, 60% { transform: translateX(-8px); } 40%, 80% { transform: translateX(8px); } }
 .behind { max-width: 640px; margin: 30px auto 0; display: grid; gap: 14px; justify-items: center; text-align: center; }
 .behind img, .behind video { max-width: 100%; filter: grayscale(1); }
-
-/* studio desk */
-.desk { width: min(900px, 100%); border: 1.5px solid var(--ink); background: #070707; padding: 22px 18px; }
-.strips { display: flex; gap: 10px; justify-content: center; overflow-x: auto; padding-bottom: 6px; }
-.strip { width: 82px; flex: none; border: 1px solid #2b2b2b; padding: 10px 6px; display: grid; gap: 10px; justify-items: center; }
-.strip .nm { font-weight: 700; font-size: 9px; letter-spacing: .2em; text-transform: uppercase; text-align: center; height: 22px; overflow: hidden; }
-.fadr { display: flex; gap: 8px; align-items: stretch; height: 170px; }
-.meter { width: 6px; background: #151515; position: relative; overflow: hidden; }
-.meter i { position: absolute; left: 0; right: 0; bottom: 0; height: 0; background: linear-gradient(#fff, #9a9a9a); }
-input[type=range].v { writing-mode: vertical-lr; direction: rtl; width: 26px; height: 170px; accent-color: #e8e8e8; }
-.strip .row .btn { padding: 5px 0; min-width: 30px; font-size: 9px; }
-.trans { display: flex; gap: 14px; align-items: center; justify-content: center; flex-wrap: wrap; margin-top: 18px; }
-.trans label { display: flex; gap: 8px; align-items: center; }
-.trans input[type=range] { accent-color: #e8e8e8; width: 120px; }
 @media (max-width: 640px) {
-  .desk { padding: 16px 8px; } .strip { width: 62px; } .strips { justify-content: flex-start; }
   .frame { width: 140px; height: 260px; } .pad { grid-template-columns: repeat(3, 52px); } .pad .btn { height: 46px; }
 }
 </style>
@@ -269,19 +255,6 @@ input[type=range].v { writing-mode: vertical-lr; direction: rtl; width: 26px; he
     <text class="lbl" x="110" y="-14">cd player</text>
   </g>
 
-  <!-- studio desk -->
-  <g class="obj" id="o-desk" data-open="desk" tabindex="0" role="button" aria-label="Studio desk">
-    <g class="art">
-      <line class="ln2" x1="20" y1="102" x2="20" y2="250"/><line class="ln2" x1="500" y1="102" x2="500" y2="250"/><line class="ln2" x1="60" y1="102" x2="60" y2="226"/><line class="ln2" x1="460" y1="102" x2="460" y2="226"/>
-      <rect class="ln" x="0" y="80" width="520" height="22"/>
-      <rect class="ln" x="8" y="-60" width="66" height="138"/><circle class="ln" cx="41" cy="-20" r="15"/><circle class="ln" cx="41" cy="38" r="24"/>
-      <rect class="ln" x="446" y="-60" width="66" height="138"/><circle class="ln" cx="479" cy="-20" r="15"/><circle class="ln" cx="479" cy="38" r="24"/>
-      <polygon class="ln" points="110,78 410,78 392,22 128,22"/>
-      <g id="faders"></g>
-    </g>
-    <text class="lbl" x="260" y="286">studio</text>
-  </g>
-
   <!-- answering machine on a side table -->
   <g class="obj" id="o-am" data-open="am" tabindex="0" role="button" aria-label="Answering machine">
     <g class="art">
@@ -309,17 +282,6 @@ input[type=range].v { writing-mode: vertical-lr; direction: rtl; width: 26px; he
     <text class="lbl" x="130" y="170">photos</text>
   </g>
 
-  <!-- notebook -->
-  <g class="obj" id="o-nb" data-open="nb" tabindex="0" role="button" aria-label="Notebook">
-    <g class="art">
-      <polygon class="ln" points="0,30 150,10 176,112 22,136"/>
-      <line class="ln2" x1="30" y1="46" x2="150" y2="30"/><line class="ln2" x1="34" y1="64" x2="156" y2="47"/><line class="ln2" x1="38" y1="82" x2="160" y2="65"/><line class="ln2" x1="42" y1="100" x2="164" y2="83"/>
-      <path class="ln2" d="M40 58 q10 -14 18 -2 t20 -4 t16 0 M44 76 q12 -8 22 0 t24 -6" style="stroke:#e8e8e8"/>
-      <line class="ln" x1="104" y1="140" x2="190" y2="96"/>
-      <circle class="ln" cx="-34" cy="112" r="16"/><circle class="ln" cx="218" cy="140" r="12"/>
-    </g>
-    <text class="lbl" x="90" y="186">notebook</text>
-  </g>
 </svg>
 </div>
 
@@ -374,12 +336,12 @@ input[type=range].v { writing-mode: vertical-lr; direction: rtl; width: 26px; he
   /* ---------- the room's walls, drawn for the current shape of the screen ---------- */
   const room = $('room'), shell = $('shell'), bulb = $('bulb');
   const LAYOUT = {
-    // one cramped room: desk against the wall, TV on a low cabinet with the CD player beside it,
-    // the answering machine by the door, notebook and photo book on the floor
+    // one cramped room: TV on a low cabinet with the CD player beside it,
+    // the answering machine by the door, photo book on the floor
     land: { vb: [1600, 1000], wall: [290, 140, 1390, 640],
-      at: { 'o-desk': [330, 452, .8], 'o-tv': [760, 343, .9], 'o-cd': [990, 468, .8], 'o-door': [1180, 289, .9], 'o-am': [1160, 650, .85], 'o-nb': [420, 700, .8], 'o-book': [700, 720, .95] } },
-    port: { vb: [1000, 1900], wall: [90, 180, 910, 820],
-      at: { 'o-tv': [110, 520, .85], 'o-cd': [318, 642, .7], 'o-door': [620, 430, .95], 'o-desk': [70, 930, 1.5], 'o-nb': [110, 1400, 1.05], 'o-am': [590, 1360, 1.05], 'o-book': [330, 1620, 1.15] } },
+      at: { 'o-tv': [560, 343, .9], 'o-cd': [790, 468, .8], 'o-door': [1180, 289, .9], 'o-am': [1160, 650, .85], 'o-book': [560, 710, .95] } },
+    port: { vb: [1000, 1450], wall: [90, 180, 910, 820],
+      at: { 'o-tv': [110, 520, .85], 'o-cd': [318, 642, .7], 'o-door': [620, 430, .95], 'o-am': [590, 960, 1.05], 'o-book': [110, 1000, 1.15] } },
   };
   // the floor point each object stands on and how wide it is, for its shadow
   const objs = [...document.querySelectorAll('.obj')];
@@ -569,8 +531,6 @@ input[type=range].v { writing-mode: vertical-lr; direction: rtl; width: 26px; he
     frame();
   }
 
-  // little faders on the desk
-  for (let i = 0; i < 12; i++) { const x = 150 + i * 20, y = 34 + (i * 37 % 26); el('line', { x1: x, y1: 30, x2: x, y2: 70, class: 'ln2' }, $('faders')); el('rect', { x: x - 4, y, width: 8, height: 6, class: 'fill' }, $('faders')); }
 
   // the TV in the room shows live static
   {
@@ -625,30 +585,6 @@ input[type=range].v { writing-mode: vertical-lr; direction: rtl; width: 26px; he
     g.putImageData(im, 0, 0);
     g.fillStyle = '#fff'; g.font = `700 ${w / 22}px Helvetica, Arial, sans-serif`; g.fillText(label, w * .06, hgt * .08);
     return c.toDataURL('image/jpeg', .8);
-  }
-  function placeholderPage(i) {
-    const w = 900, hgt = 1200, c = document.createElement('canvas'); c.width = w; c.height = hgt; const g = c.getContext('2d');
-    g.fillStyle = '#e6e5e1'; g.fillRect(0, 0, w, hgt);
-    g.strokeStyle = 'rgba(0,0,0,.14)'; g.lineWidth = 2;
-    for (let y = 160; y < hgt - 40; y += 46) { g.beginPath(); g.moveTo(0, y); g.lineTo(w, y); g.stroke(); }
-    g.beginPath(); g.moveTo(110, 0); g.lineTo(110, hgt); g.stroke();
-    g.fillStyle = '#111'; g.font = '700 30px Helvetica, Arial, sans-serif'; g.fillText(`UNTITLED 0${i + 1}`, 130, 110);
-    let seed = i * 977 + 13; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
-    g.strokeStyle = '#141414'; g.lineCap = 'round';
-    for (let y = 196; y < hgt - 80; y += 46) {
-      if (rnd() < .18) continue;
-      let x = 130 + rnd() * 30; const end = w - 60 - rnd() * 260;
-      while (x < end) {   // a "word" of handwriting-like loops
-        const len = 30 + rnd() * 90; g.lineWidth = 2 + rnd() * 1.6; g.beginPath(); g.moveTo(x, y - 8);
-        for (let t = 0; t < len; t += 4) g.lineTo(x + t, y - 8 - Math.abs(Math.sin(t * .35 + rnd())) * (10 + rnd() * 8));
-        g.stroke(); x += len + 14 + rnd() * 10;
-      }
-      if (rnd() < .2) { g.lineWidth = 3; g.beginPath(); g.moveTo(130, y - 14); g.lineTo(end, y - 18); g.stroke(); }   // crossed out
-    }
-    // an eye doodle in the margin
-    g.lineWidth = 3; g.beginPath(); g.ellipse(w - 150, 240 + i * 180, 70, 30, 0, 0, 7); g.stroke();
-    g.beginPath(); g.arc(w - 150, 240 + i * 180, 18, 0, 7); g.fillStyle = '#111'; g.fill();
-    return c.toDataURL('image/jpeg', .85);
   }
 
   /* ---------- 1. CD player ---------- */
@@ -722,7 +658,7 @@ input[type=range].v { writing-mode: vertical-lr; direction: rtl; width: 26px; he
     openPanel('photo book', b, () => { players.book(); delete players.book; });
   };
 
-  /* zoomable viewer (photos, notebook pages) */
+  /* zoomable viewer (photos) */
   function viewer(items, start, title) {
     let i = start, z = 1, tx = 0, ty = 0;
     const b = h(`<div class="nb"><div class="view"><img alt=""></div>
@@ -747,13 +683,6 @@ input[type=range].v { writing-mode: vertical-lr; direction: rtl; width: 26px; he
     openPanel(title, b);
     load();
   }
-
-  /* ---------- 3. notebook ---------- */
-  OPENERS.nb = () => {
-    const pages = M.notebook.filter(f => !isVideo(f) && !isAudio(f));
-    if (pages.length) return viewer(pages, 0, 'notebook');
-    viewer(Array.from({ length: 4 }, (_, i) => ({ url: placeholderPage(i) })), 0, 'notebook · placeholder');
-  };
 
   /* ---------- 4. answering machine ---------- */
   let vmStop = null;
@@ -851,7 +780,7 @@ input[type=range].v { writing-mode: vertical-lr; direction: rtl; width: 26px; he
   /* ---------- 6. locked door ---------- */
   OPENERS.door = () => {
     const b = h(`<div><div class="dr"><div class="frame" id="frame"><div class="leaf"><i></i></div></div>
-      <div><div class="code" id="code">····</div><div class="pad">${[1,2,3,4,5,6,7,8,9].map(n => `<button class="btn" data-k="${n}">${n}</button>`).join('')}<button class="btn" data-k="c">clr</button><button class="btn" data-k="0">0</button><button class="btn" data-k="e">enter</button></div>
+      <div><div class="code" id="code">····</div><div class="pad">${[1,2,3,4,5,6,7,8,9].map(n => `<button class="btn" data-k="${n}">${n}</button>`).join('')}<button class="btn w" data-k="c">clr</button><button class="btn" data-k="0">0</button><button class="btn w" data-k="e">enter</button></div>
       <div class="cap" style="margin-top:14px;text-align:center" id="dmsg">the code drops with the merch</div></div></div><div class="behind" id="behind" hidden></div></div>`);
     const code = b.querySelector('#code'), dmsg = b.querySelector('#dmsg'), frame = b.querySelector('#frame'), behind = b.querySelector('#behind');
     let v = '';
@@ -882,73 +811,6 @@ input[type=range].v { writing-mode: vertical-lr; direction: rtl; width: 26px; he
     const keys = e => { if (/^\d$/.test(e.key) && v.length < 8) { v += e.key; tone(700, .05, .04); show(); } else if (e.key === 'Enter') enter(); else if (e.key === 'Backspace') { v = v.slice(0, -1); show(); } };
     addEventListener('keydown', keys);
     openPanel('door', b, () => removeEventListener('keydown', keys));
-  };
-
-  /* ---------- 7. studio desk: mix the stems ---------- */
-  OPENERS.desk = () => {
-    const real = M.stems.filter(isAudio);
-    const names = real.length ? real.map(f => clean(f.name)) : ['drums', 'bass', 'pad', 'keys', 'tape'];
-    const b = h(`<div class="desk"><div class="strips">${names.map((n, i) => `<div class="strip" data-i="${i}"><div class="nm">${esc(n)}</div>
-      <div class="fadr"><div class="meter"><i></i></div><input class="v" type="range" min="0" max="1" step="0.01" value="0.8" aria-label="${esc(n)} volume"></div>
-      <div class="row"><button class="btn" data-m>m</button><button class="btn" data-s>s</button></div></div>`).join('')}</div>
-      <div class="trans"><button class="btn" id="tp">play</button><label class="cap">speed <input id="spd" type="range" min="0.7" max="1" step="0.01" value="1"></label><span class="cap" id="spv">1.00x</span></div>
-      <div class="ph" id="dph">${real.length ? 'loading stems…' : 'placeholder stems · add the real stems of a song in "fill the room"'}</div></div>`);
-    const a = ac(); if (!a) { openPanel('studio', b); return; }
-    const master = a.createGain(); master.gain.value = .9; master.connect(a.destination);
-    const ch = names.map(() => { const g = a.createGain(), an = a.createAnalyser(); an.fftSize = 256; g.connect(an); an.connect(master); return { g, an, vol: .8, mute: false, solo: false, buf: new Float32Array(256) }; });
-    function levels() { const anySolo = ch.some(c => c.solo); ch.forEach(c => c.g.gain.setTargetAtTime((c.mute || (anySolo && !c.solo)) ? 0 : c.vol, a.currentTime, .02)); }
-    b.querySelectorAll('.strip').forEach((s, i) => {
-      s.querySelector('input').oninput = e => { ch[i].vol = +e.target.value; levels(); };
-      const m = s.querySelector('[data-m]'), so = s.querySelector('[data-s]');
-      m.onclick = () => { ch[i].mute = !ch[i].mute; m.classList.toggle('on', ch[i].mute); levels(); };
-      so.onclick = () => { ch[i].solo = !ch[i].solo; so.classList.toggle('on', ch[i].solo); levels(); };
-    });
-    let speed = 1, playing = false, sources = [], timer = 0, bufs = null, startAt = 0, offset = 0;
-    const spd = b.querySelector('#spd'), spv = b.querySelector('#spv'), tp = b.querySelector('#tp');
-    spd.oninput = () => { speed = +spd.value; spv.textContent = speed.toFixed(2) + 'x'; sources.forEach(s => s.playbackRate && s.playbackRate.setTargetAtTime(speed, a.currentTime, .05)); };
-
-    // real stems: decode them all, then start every one at the same instant
-    const loadReal = real.length ? Promise.all(real.map(f => fetch(f.url).then(r => r.arrayBuffer()).then(x => a.decodeAudioData(x)))).then(x => { bufs = x; b.querySelector('#dph').textContent = ''; }).catch(() => { b.querySelector('#dph').textContent = "couldn't load the stems"; }) : null;
-
-    // placeholder stems: a slow loop, scheduled a little ahead
-    const BARS = [[110, 130.8, 164.8], [87.3, 110, 130.8], [130.8, 164.8, 196], [98, 123.5, 146.8]];   // Am F C G
-    let step = 0, nextT = 0;
-    function synthStep(t, s, dur) {
-      const bar = Math.floor(s / 16) % 4, k = s % 16, chord = BARS[bar];
-      const hit = (node, f, v, len, type = 'sine', drop = 0) => { const o = a.createOscillator(), g = a.createGain(); o.type = type; o.frequency.setValueAtTime(f, t); if (drop) o.frequency.exponentialRampToValueAtTime(drop, t + len * .6); o.connect(g); g.connect(node); g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(.001, t + len); o.start(t); o.stop(t + len + .02); };
-      const nz = (node, v, len, hp) => { const n = a.createBufferSource(), f = a.createBiquadFilter(), g = a.createGain(); n.buffer = noise(); f.type = hp ? 'highpass' : 'bandpass'; f.frequency.value = hp ? 7000 : 1800; n.connect(f); f.connect(g); g.connect(node); g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(.001, t + len); n.start(t, Math.random()); n.stop(t + len + .02); };
-      if (k === 0 || k === 10) hit(ch[0].g, 120, .9, .5, 'sine', 38);
-      if (k === 8) nz(ch[0].g, .35, .3);
-      if (k % 2 === 0) nz(ch[0].g, k % 4 ? .05 : .09, .06, true);
-      if (k === 0 || k === 7 || k === 10) hit(ch[1].g, chord[0] / 2, .5, dur * (k === 0 ? 6 : 3), 'sine');
-      if (k === 0) chord.forEach(f => [0, 1].forEach(d => { const o = a.createOscillator(), g = a.createGain(), lp = a.createBiquadFilter(); o.type = 'sawtooth'; o.frequency.value = f * 2 * (d ? 1.004 : .996); lp.type = 'lowpass'; lp.frequency.value = 900; o.connect(lp); lp.connect(g); g.connect(ch[2].g); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(.05, t + dur * 4); g.gain.setValueAtTime(.05, t + dur * 13); g.gain.linearRampToValueAtTime(0, t + dur * 16); o.start(t); o.stop(t + dur * 16 + .05); }));
-      if (k % 4 === 2 || k === 15) hit(ch[3].g, chord[(k >> 2) % 3] * 4, .12, .9, 'sine');
-      if (k % 4 === 0) nz(ch[4].g, .04, dur * 4, false);
-    }
-    function sched() {
-      const dur = 60 / (72 * speed) / 4;
-      while (nextT < a.currentTime + .25) { synthStep(nextT, step, dur); nextT += dur; step++; }
-    }
-    function start() {
-      solo('desk'); playing = true; tp.textContent = 'stop'; $('o-desk').classList.add('playing');
-      if (real.length) {
-        if (!bufs) { loadReal.then(() => { if (playing && bufs) start(); }); return; }
-        const t = a.currentTime + .08; startAt = t;
-        sources = bufs.map((bf, i) => { const s = a.createBufferSource(); s.buffer = bf; s.loop = true; s.playbackRate.value = speed; s.connect(ch[i].g); s.start(t, offset % bf.duration); return s; });
-      } else { nextT = a.currentTime + .08; step = 0; sched(); timer = setInterval(sched, 50); }
-    }
-    function stop() {
-      playing = false; tp.textContent = 'play'; $('o-desk').classList.remove('playing');
-      clearInterval(timer); sources.forEach(s => { try { s.stop(); } catch (e) {} }); sources = [];
-    }
-    tp.onclick = () => playing ? stop() : start();
-    // meters
-    let raf = 0;
-    const meters = b.querySelectorAll('.meter i');
-    const meter = () => { ch.forEach((c, i) => { c.an.getFloatTimeDomainData(c.buf); let p = 0; for (const x of c.buf) p = Math.max(p, Math.abs(x)); meters[i].style.height = Math.min(100, p * 140) + '%'; }); raf = requestAnimationFrame(meter); };
-    meter();
-    players.desk = stop;
-    openPanel('studio', b, () => { stop(); cancelAnimationFrame(raf); setTimeout(() => master.disconnect(), 200); delete players.desk; });
   };
 
   /* ---------- film grain over everything ---------- */
