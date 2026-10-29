@@ -359,6 +359,43 @@ input[type=range].v { writing-mode: vertical-lr; direction: rtl; width: 26px; he
   // only one thing in the room makes sound at a time
   const players = {};
   function solo(name) { for (const k in players) if (k !== name) players[k](); }
+  // lo-fi: the CD player and the answering machine play through worn little speakers
+  const LOFI = {
+    cd: { hp: 110, lp: 5200, drive: 1.6, steps: 0, wow: .0012, hiss: .010, vol: .9 },
+    am: { hp: 320, lp: 2900, drive: 3.2, steps: 48, wow: .0026, hiss: .022, vol: 1 }
+  };
+  const buses = {};
+  function bus(name) {
+    const a = ac(); if (!a) return null;
+    if (buses[name]) return buses[name];
+    const o = LOFI[name], inp = a.createGain(), hp = a.createBiquadFilter(), lp = a.createBiquadFilter(), sh = a.createWaveShaper(), dl = a.createDelay(.05), out = a.createGain();
+    hp.type = 'highpass'; hp.frequency.value = o.hp; lp.type = 'lowpass'; lp.frequency.value = o.lp; lp.Q.value = .9;
+    const n = 2048, c = new Float32Array(n);
+    for (let i = 0; i < n; i++) { let x = Math.tanh((i / (n - 1) * 2 - 1) * o.drive) / Math.tanh(o.drive); if (o.steps) x = Math.round(x * o.steps) / o.steps; c[i] = x; }
+    sh.curve = c; sh.oversample = 'none';
+    // wow and flutter: a slowly wobbling delay bends the pitch a little
+    dl.delayTime.value = .006; const wow = a.createOscillator(), wg = a.createGain(); wow.frequency.value = .55; wg.gain.value = o.wow; wow.connect(wg); wg.connect(dl.delayTime); wow.start();
+    out.gain.value = o.vol;
+    inp.connect(hp); hp.connect(lp); lp.connect(sh); sh.connect(dl); dl.connect(out); out.connect(a.destination);
+    // tape hiss, only while something is playing
+    const hs = a.createBufferSource(), hf = a.createBiquadFilter(), hg = a.createGain();
+    hs.buffer = noise(); hs.loop = true; hf.type = 'bandpass'; hf.frequency.value = 3500; hf.Q.value = .4; hg.gain.value = 0;
+    hs.connect(hf); hf.connect(hg); hg.connect(a.destination); hs.start();
+    return buses[name] = { inp, on(v) { hg.gain.setTargetAtTime(v ? o.hiss : 0, a.currentTime, .08); } };
+  }
+  // send an <audio> element through a bus. Files come from another domain, so the element asks for CORS;
+  // if that ever fails it falls back to playing clean rather than silent.
+  function lofiEl(el, name) {
+    if (el._lofi) return;
+    el._lofi = name; el.crossOrigin = 'anonymous';
+    el.addEventListener('error', () => { if (el.crossOrigin && !el._routed) { el._raw = true; el.removeAttribute('crossorigin'); const t = el.currentTime; el.load(); el.currentTime = t; el.play().catch(() => {}); } });
+    el.addEventListener('playing', () => {
+      const b = bus(name); if (!b) return;
+      if (!el._routed && !el._raw) { try { ac().createMediaElementSource(el).connect(b.inp); el._routed = true; } catch (e) { el._raw = true; } }
+      if (el._routed) b.on(true);
+    });
+    ['pause', 'ended'].forEach(ev => el.addEventListener(ev, () => { if (el._routed) bus(name).on(false); }));
+  }
 
   /* ---------- the room's walls, drawn for the current shape of the screen ---------- */
   const room = $('room'), shell = $('shell'), bulb = $('bulb');
@@ -618,7 +655,7 @@ input[type=range].v { writing-mode: vertical-lr; direction: rtl; width: 26px; he
   }
 
   /* ---------- 1. CD player ---------- */
-  const audio = new Audio(); audio.preload = 'metadata';
+  const audio = new Audio(); audio.preload = 'metadata'; lofiEl(audio, 'cd');
   let trackIx = -1;
   players.cd = () => { audio.pause(); };
   audio.addEventListener('play', () => $('o-cd').classList.add('playing'));
@@ -720,7 +757,7 @@ input[type=range].v { writing-mode: vertical-lr; direction: rtl; width: 26px; he
   function fakeVoicemail(i) {
     // stand-in "voice note": tape hiss and a muffled hummed melody
     const a = ac(); if (!a) return { dur: 0, stop() {} };
-    const t0 = a.currentTime + .05, dur = 7 + i, out = a.createGain(); out.gain.value = .9; out.connect(a.destination);
+    const t0 = a.currentTime + .05, dur = 7 + i, out = a.createGain(), am = bus('am'); out.gain.value = .9; out.connect(am.inp); am.on(true);
     const lp = a.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 900; lp.connect(out);
     const hiss = a.createBufferSource(); hiss.buffer = noise(); hiss.loop = true; const hg = a.createGain(); hg.gain.value = .025; hiss.connect(hg); hg.connect(out);
     const notes = [[220, 246.9, 261.6, 246.9, 196], [174.6, 196, 220, 196, 164.8], [261.6, 233.1, 220, 196, 220]][i % 3];
@@ -730,7 +767,8 @@ input[type=range].v { writing-mode: vertical-lr; direction: rtl; width: 26px; he
     notes.forEach((f, k) => { const t = t0 + .6 + k * 1.15; o.frequency.setValueAtTime(f, t); og.gain.linearRampToValueAtTime(.16, t + .12); og.gain.setValueAtTime(.16, t + .85); og.gain.linearRampToValueAtTime(.02, t + 1.1); });
     og.gain.linearRampToValueAtTime(0, t0 + dur - .2);
     [hiss, o, vib].forEach(n => { n.start(t0); n.stop(t0 + dur); });
-    return { dur, stop() { try { [hiss, o, vib].forEach(n => n.stop()); } catch (e) {} } };
+    setTimeout(() => am.on(false), dur * 1000);
+    return { dur, stop() { am.on(false); try { [hiss, o, vib].forEach(n => n.stop()); } catch (e) {} } };
   }
   OPENERS.am = () => {
     const real = M.voicemail.filter(isAudio);
@@ -751,7 +789,7 @@ input[type=range].v { writing-mode: vertical-lr; direction: rtl; width: 26px; he
       tone(1000, .45, .05, 'sine');   // the beep
       timer = setTimeout(() => {
         if (!playing) return;
-        if (msgs[i].url) { el2 = new Audio(msgs[i].url); el2.onended = next; el2.play().catch(() => {}); vmStop = () => { if (el2) el2.pause(); }; }
+        if (msgs[i].url) { el2 = new Audio(); lofiEl(el2, 'am'); el2.src = msgs[i].url; el2.onended = next; el2.play().catch(() => {}); vmStop = () => { if (el2) el2.pause(); }; }
         else { const v = fakeVoicemail(i); vmStop = v.stop; timer = setTimeout(next, v.dur * 1000 + 200); }
       }, 650);
     }
