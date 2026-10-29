@@ -3,7 +3,7 @@
 import { handleUpload } from "@vercel/blob/client";
 import { KINDS, isOwner, noStore } from "../../../../lib/deep.js";
 
-const TYPES = ["image/*", "video/*", "audio/*", "application/pdf"];
+const TYPES = ["image/*", "video/*", "audio/*", "application/pdf", "application/octet-stream"];
 
 export async function POST(request) {
   if (!process.env.BLOB_READ_WRITE_TOKEN) return Response.json({ error: "Storage isn't switched on yet." }, { status: 503, headers: noStore });

@@ -14,6 +14,15 @@ const PLACES = [
   ["door", "Behind the locked door", "Anything. Only shows after the door code."],
 ];
 
+// some phones and computers hand over audio files with no type (or an odd one), so name it from the extension
+const TYPES = {
+  mp3: "audio/mpeg", wav: "audio/wav", wave: "audio/wav", m4a: "audio/mp4", aac: "audio/aac", aif: "audio/aiff", aiff: "audio/aiff", flac: "audio/flac", ogg: "audio/ogg",
+  mp4: "video/mp4", mov: "video/quicktime", webm: "video/webm", jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png", gif: "image/gif", webp: "image/webp", heic: "image/heic", pdf: "application/pdf",
+};
+const ACCEPT = "image/*,video/*,audio/*,application/pdf," + Object.keys(TYPES).map(e => "." + e).join(",");
+const typeOf = file => TYPES[file.name.split(".").pop().toLowerCase()] || file.type || "application/octet-stream";
+const safeName = name => name.replace(/[^\w.\- ()]+/g, "-");
+
 const font = '"Helvetica Neue", Helvetica, Arial, sans-serif';
 const s = {
   page: { minHeight: "100vh", background: "#000", color: "#eee", fontFamily: font, padding: "40px 16px 80px", boxSizing: "border-box" },
@@ -37,8 +46,8 @@ function Place({ kind, title, help, files, onDone, storage }) {
     for (const file of list) {
       try {
         setBusy(`${file.name} 0%`);
-        await upload(`deep/${kind}/${file.name}`, file, {
-          access: "public", handleUploadUrl: "/api/deep/upload", multipart: file.size > 20e6,
+        await upload(`deep/${kind}/${safeName(file.name)}`, file, {
+          access: "public", contentType: typeOf(file), handleUploadUrl: "/api/deep/upload", multipart: file.size > 20e6,
           onUploadProgress: p => setBusy(`${file.name} ${Math.round(p.percentage)}%`),
         });
       } catch (e) { setErr(`${file.name}: ${e.message}`); }
@@ -57,7 +66,7 @@ function Place({ kind, title, help, files, onDone, storage }) {
       <div style={s.row}>
         <div><div style={{ fontWeight: 700, fontSize: 16 }}>{title}</div><div style={{ ...s.small, textTransform: "none", letterSpacing: 0, marginTop: 4 }}>{help}</div></div>
         <button style={{ ...s.btn, opacity: storage ? 1 : .4 }} disabled={!storage || !!busy} onClick={() => input.current.click()}>{busy ? "Uploading…" : "Add files"}</button>
-        <input ref={input} type="file" multiple hidden accept="image/*,video/*,audio/*,application/pdf"
+        <input ref={input} type="file" multiple hidden accept={ACCEPT}
           onChange={e => { const l = [...e.target.files]; e.target.value = ""; if (l.length) send(l); }} />
       </div>
       {busy && <div style={{ ...s.small, marginTop: 10 }}>{busy}</div>}
