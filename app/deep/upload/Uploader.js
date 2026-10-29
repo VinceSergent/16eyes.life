@@ -91,7 +91,7 @@ export default function Uploader() {
       <div style={s.wrap}>
         <div style={s.small}><a href="/deep" style={{ color: "#888" }}>← back to the room</a></div>
         <h1 style={{ ...s.h1, marginTop: 18 }}>Fill the room</h1>
-        <div style={s.small}>Only people with the password can see this page.</div>
+        <div style={s.small}>Only you can see this page.</div>
         {data && !storage && <div style={{ ...s.card, borderColor: "#fff" }}>File storage isn't switched on yet, so uploads are off. Until then the room shows placeholders.</div>}
         {PLACES.map(([kind, title, help]) => <Place key={kind} kind={kind} title={title} help={help} files={data?.media?.[kind]} onDone={load} storage={storage} />)}
       </div>

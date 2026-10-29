@@ -1,9 +1,8 @@
 // The owner key for the upload page: right owner password, and the browser gets a signed owner cookie.
 import { cookies } from "next/headers";
-import { isAuthed, checkOwnerPassword, ownerPasswordIsSet, ownerCookie, tooManyTries, noStore, OWNER_COOKIE } from "../../../../lib/deep.js";
+import { checkOwnerPassword, ownerPasswordIsSet, ownerCookie, tooManyTries, noStore, OWNER_COOKIE } from "../../../../lib/deep.js";
 
 export async function POST(request) {
-  if (!isAuthed(request)) return Response.json({ ok: false }, { status: 401, headers: noStore });
   if (!ownerPasswordIsSet()) return Response.json({ ok: false, error: "not_ready" }, { status: 503, headers: noStore });
   if (await tooManyTries(request, "owner")) return Response.json({ ok: false, error: "slow_down" }, { status: 429, headers: noStore });
   let body;
