@@ -1,0 +1,916 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#000000">
+<title>16eyes · deeper</title>
+<style>
+/* One dark black-and-white room drawn as line art. Every object in it opens a "screen" (panel).
+   What plays or shows inside comes from Vince's uploads (/deep/upload); until then, placeholders. */
+:root {
+  --sans: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --ink: #e8e8e8; --dim: #8a8a8a; --faint: #3a3a3a; --bg: #000;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { height: 100%; margin: 0; }
+body { background: var(--bg); color: var(--ink); font-family: var(--sans); overflow: hidden; -webkit-tap-highlight-color: transparent; }
+button { font-family: var(--sans); }
+
+/* screen texture over everything */
+#grain { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 50; pointer-events: none; opacity: .13; mix-blend-mode: screen; }
+.lines { position: fixed; inset: 0; z-index: 51; pointer-events: none; background: repeating-linear-gradient(0deg, rgba(0,0,0,.3) 0 1px, transparent 1px 3px); }
+.vig { position: fixed; inset: 0; z-index: 52; pointer-events: none; background: radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,.9) 100%); }
+
+/* the room */
+#world { position: fixed; inset: 0; animation: power 1.4s ease-out both; }
+#world svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+#room { pointer-events: none; } #room .obj, #fx #pend { pointer-events: all; }
+@keyframes power { 0% { opacity: 0; transform: scaleY(.01); filter: brightness(3); } 35% { opacity: 1; transform: scaleY(.01); } 65% { transform: scaleY(1); filter: brightness(1.6) blur(1px); } 100% { filter: none; } }
+#room .wall, #bg .wall { fill: none; stroke: #3a3a3a; stroke-width: 1.4; }
+#bg .wall.soft { stroke: #222; }
+#pend { cursor: grab; }
+/* the bulb's light: everything far from it falls into the dark (positions set by the light loop) */
+#dark { position: fixed; inset: 0; z-index: 5; pointer-events: none;
+  background: radial-gradient(circle at var(--lx, 50%) var(--ly, 20%), rgba(0,0,0,calc(var(--k, 0) * .9)) 0, rgba(0,0,0,calc(.1 + var(--k, 0) * .65)) var(--r1, 260px), rgba(0,0,0,calc(.5 + var(--k, 0) * .4)) var(--r2, 900px)); }
+#film { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 49; pointer-events: none; }
+.obj { cursor: pointer; outline: none; }
+.obj .art { transition: transform .28s cubic-bezier(.2,.8,.2,1); transform-box: fill-box; transform-origin: center bottom; filter: url(#rough); }
+.obj .art * { vector-effect: non-scaling-stroke; }
+.obj .ln { fill: #141414; stroke: #dedede; stroke-width: 1.7; stroke-linejoin: round; stroke-linecap: round; }
+.obj .ln2 { fill: none; stroke: #9a9a9a; stroke-width: 1.1; stroke-linecap: round; }
+.obj .fill { fill: var(--ink); stroke: none; }
+.obj .lbl { fill: var(--ink); font: 700 13px var(--sans); letter-spacing: .26em; text-transform: uppercase; text-anchor: middle; opacity: 0; transition: opacity .25s; pointer-events: none; }
+.obj:hover .art, .obj:focus-visible .art { transform: translateY(-7px); filter: url(#rough) drop-shadow(0 0 7px rgba(255,255,255,.55)); }
+.obj:hover .lbl, .obj:focus-visible .lbl { opacity: 1; }
+@media (hover: none) { .obj .lbl { opacity: .75; } }
+.blink { animation: blink 1.1s steps(1) infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+.spin { transform-box: fill-box; transform-origin: center; }
+.playing .spin { animation: rot 1.8s linear infinite; }
+@keyframes rot { to { transform: rotate(360deg); } }
+.under { opacity: .35; transition: opacity 1s; }
+.door-open .under { opacity: 1; }
+
+.hud { position: fixed; z-index: 10; font: 700 9px var(--sans); letter-spacing: .28em; text-transform: uppercase; color: #777; text-decoration: none; }
+.hud:hover, .hud:focus-visible { color: #fff; outline: none; }
+#home { top: calc(14px + env(safe-area-inset-top, 0px)); left: 16px; }
+#fill { top: calc(14px + env(safe-area-inset-top, 0px)); right: 16px; }
+#hint { left: 50%; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); white-space: nowrap; color: #555; transition: opacity 1.5s; }
+
+/* panels ("screens") */
+.panel { position: fixed; inset: 0; z-index: 20; background: rgba(0,0,0,.94); display: flex; flex-direction: column; animation: open .35s ease-out both; overflow: auto; }
+@keyframes open { from { opacity: 0; transform: scale(1.03); filter: blur(4px); } }
+.panel header { position: sticky; top: 0; display: flex; justify-content: space-between; align-items: center; padding: calc(14px + env(safe-area-inset-top, 0px)) 16px 10px; background: linear-gradient(#000 60%, transparent); z-index: 2; }
+.panel h2 { margin: 0; font-weight: 700; font-size: 11px; letter-spacing: .3em; text-transform: uppercase; }
+.x { background: none; border: 0; color: #aaa; cursor: pointer; font: 700 10px var(--sans); letter-spacing: .26em; text-transform: uppercase; padding: 6px; }
+.x:hover, .x:focus-visible { color: #fff; outline: none; }
+.body { flex: 1; display: grid; place-items: center; padding: 8px 16px 40px; }
+.cap { font-weight: 700; font-size: 9px; letter-spacing: .26em; text-transform: uppercase; color: var(--dim); }
+.ph { font-weight: 700; font-size: 9px; letter-spacing: .2em; text-transform: uppercase; color: #555; text-align: center; margin-top: 18px; }
+.btn { background: none; border: 1px solid #555; color: var(--ink); cursor: pointer; font: 700 10px var(--sans); letter-spacing: .22em; text-transform: uppercase; padding: 9px 12px; min-width: 44px; }
+.btn:hover, .btn:focus-visible { border-color: #fff; color: #fff; box-shadow: 0 0 10px rgba(255,255,255,.25); outline: none; }
+.btn.on { background: #e8e8e8; color: #000; border-color: #e8e8e8; }
+.row { display: flex; gap: 8px; align-items: center; justify-content: center; flex-wrap: wrap; }
+
+/* CD player */
+.cdp { display: grid; grid-template-columns: auto minmax(0, 340px); gap: 40px; align-items: center; width: min(820px, 100%); }
+@media (max-width: 640px) { .cdp { grid-template-columns: 1fr; justify-items: center; gap: 24px; } }
+.disc { width: min(300px, 70vw); aspect-ratio: 1; border-radius: 50%; position: relative;
+  background: radial-gradient(circle closest-side, #000 0 11%, #2a2a2a 11.5% 13%, rgba(160,160,160,.25) 13.5% 26%, transparent 26.5%),
+              conic-gradient(#f3f3f3, #9d9d9d 11%, #ececec 22%, #7f7f7f 33%, #dcdcdc 45%, #fafafa 52%, #929292 63%, #e6e6e6 74%, #777 86%, #f3f3f3);
+  box-shadow: 0 0 40px rgba(255,255,255,.08); }
+.disc::after { content: "16eyes"; position: absolute; left: 50%; top: 66%; transform: translateX(-50%); font: 700 13px var(--sans); color: #111; letter-spacing: -.02em; }
+.disc.go { animation: rot 2.2s linear infinite; }
+.tracks { list-style: none; margin: 0 0 16px; padding: 0; max-height: 40vh; overflow: auto; }
+.tracks li { display: flex; gap: 10px; padding: 8px 2px; border-bottom: 1px solid #1b1b1b; cursor: pointer; font-weight: 700; font-size: 13px; color: #aaa; }
+.tracks li:hover, .tracks li.cur { color: #fff; }
+.tracks li span { color: #555; width: 22px; }
+.bar { height: 3px; background: #222; margin: 14px 0 6px; cursor: pointer; position: relative; }
+.bar i { position: absolute; inset: 0 auto 0 0; background: #e8e8e8; width: 0; }
+.sc { width: 100%; height: 166px; border: 0; filter: grayscale(1) contrast(1.05); }
+
+/* photo book */
+.book { width: min(980px, 100%); }
+.spread { display: grid; grid-template-columns: 1fr 1fr; gap: 0; perspective: 1600px; }
+@media (max-width: 640px) { .spread { grid-template-columns: 1fr; } .spread .pg:nth-child(2) { display: none; } }
+.pg { aspect-ratio: 4/5; background: #0c0c0c; border: 1px solid #2a2a2a; display: grid; place-items: center; padding: 18px; overflow: hidden; position: relative; }
+.pg img, .pg video { max-width: 100%; max-height: 100%; object-fit: contain; filter: grayscale(1) contrast(1.08); cursor: zoom-in; }
+.pg .n { position: absolute; bottom: 8px; left: 0; right: 0; text-align: center; }
+.flip { animation: flip .45s ease-out; transform-origin: left center; }
+@keyframes flip { from { transform: rotateY(-70deg); opacity: .2; } }
+
+/* answering machine */
+.am { width: min(520px, 100%); border: 1.5px solid var(--ink); padding: 26px; background: #070707; position: relative; }
+.am .top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
+.lcd { font: 700 44px var(--sans); letter-spacing: -.02em; background: #111; border: 1px solid #333; padding: 6px 14px; min-width: 92px; text-align: center; }
+.led { width: 12px; height: 12px; border-radius: 50%; background: #fff; box-shadow: 0 0 12px #fff; }
+.tape { height: 64px; border: 1px solid #444; display: flex; justify-content: space-around; align-items: center; margin-bottom: 18px; }
+.reel { width: 40px; height: 40px; border-radius: 50%; border: 2px dashed #888; }
+.am.go .reel { animation: rot 1.4s linear infinite; }
+.say { min-height: 36px; text-align: center; margin: 14px 0 0; font-weight: 700; font-size: 12px; letter-spacing: .08em; color: #bbb; }
+
+/* TV */
+.tvbox { width: min(760px, 100%); border: 1.5px solid var(--ink); border-radius: 26px; padding: 22px; background: #070707; }
+.scr { position: relative; aspect-ratio: 4/3; border-radius: 40px / 32px; overflow: hidden; background: #000; box-shadow: inset 0 0 60px rgba(0,0,0,.9); }
+.scr canvas, .scr video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; filter: grayscale(1) contrast(1.15); }
+.scr::after { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(0deg, rgba(0,0,0,.35) 0 2px, transparent 2px 4px), radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,.7)); pointer-events: none; }
+.osd { position: absolute; top: 18px; right: 26px; font: 700 28px var(--sans); color: #fff; text-shadow: 0 0 8px #fff; z-index: 2; transition: opacity .5s; }
+
+/* notebook / viewer */
+.nb { width: min(760px, 100%); }
+.view { position: relative; overflow: hidden; height: min(72vh, 900px); background: #050505; border: 1px solid #222; touch-action: none; cursor: zoom-in; }
+.view.zoomed { cursor: grab; }
+.view img { position: absolute; left: 50%; top: 50%; max-width: 100%; max-height: 100%; transform-origin: 0 0; user-select: none; -webkit-user-drag: none; filter: grayscale(1); }
+
+/* door */
+.dr { display: grid; grid-template-columns: auto auto; gap: 40px; align-items: center; }
+@media (max-width: 640px) { .dr { grid-template-columns: 1fr; justify-items: center; gap: 22px; } }
+.frame { width: 200px; height: 380px; border: 1.5px solid var(--ink); position: relative; perspective: 900px; background: radial-gradient(ellipse at center, #fff 0, #bbb 30%, #222 75%); }
+.leaf { position: absolute; inset: 0; background: #070707; border: 1px solid #555; transform-origin: left center; transition: transform 1.6s cubic-bezier(.3,.7,.2,1); }
+.leaf::before, .leaf::after { content: ""; position: absolute; left: 18%; right: 18%; border: 1px solid #333; }
+.leaf::before { top: 8%; height: 34%; } .leaf::after { bottom: 8%; height: 40%; }
+.leaf i { position: absolute; right: 16px; top: 52%; width: 12px; height: 12px; border-radius: 50%; border: 1.5px solid #ccc; }
+.open .leaf { transform: rotateY(-100deg); }
+.pad { display: grid; grid-template-columns: repeat(3, 56px); gap: 8px; }
+.pad .btn { height: 52px; font-size: 16px; }
+.code { font: 700 30px var(--sans); letter-spacing: .5em; text-align: center; margin-bottom: 14px; min-height: 40px; padding-left: .5em; }
+.shake { animation: shake .4s; }
+@keyframes shake { 20%, 60% { transform: translateX(-8px); } 40%, 80% { transform: translateX(8px); } }
+.behind { max-width: 640px; margin: 30px auto 0; display: grid; gap: 14px; justify-items: center; text-align: center; }
+.behind img, .behind video { max-width: 100%; filter: grayscale(1); }
+
+/* studio desk */
+.desk { width: min(900px, 100%); border: 1.5px solid var(--ink); background: #070707; padding: 22px 18px; }
+.strips { display: flex; gap: 10px; justify-content: center; overflow-x: auto; padding-bottom: 6px; }
+.strip { width: 82px; flex: none; border: 1px solid #2b2b2b; padding: 10px 6px; display: grid; gap: 10px; justify-items: center; }
+.strip .nm { font-weight: 700; font-size: 9px; letter-spacing: .2em; text-transform: uppercase; text-align: center; height: 22px; overflow: hidden; }
+.fadr { display: flex; gap: 8px; align-items: stretch; height: 170px; }
+.meter { width: 6px; background: #151515; position: relative; overflow: hidden; }
+.meter i { position: absolute; left: 0; right: 0; bottom: 0; height: 0; background: linear-gradient(#fff, #9a9a9a); }
+input[type=range].v { writing-mode: vertical-lr; direction: rtl; width: 26px; height: 170px; accent-color: #e8e8e8; }
+.strip .row .btn { padding: 5px 0; min-width: 30px; font-size: 9px; }
+.trans { display: flex; gap: 14px; align-items: center; justify-content: center; flex-wrap: wrap; margin-top: 18px; }
+.trans label { display: flex; gap: 8px; align-items: center; }
+.trans input[type=range] { accent-color: #e8e8e8; width: 120px; }
+@media (max-width: 640px) {
+  .desk { padding: 16px 8px; } .strip { width: 62px; } .strips { justify-content: flex-start; }
+  .frame { width: 140px; height: 260px; } .pad { grid-template-columns: repeat(3, 52px); } .pad .btn { height: 46px; }
+}
+</style>
+</head>
+<body>
+<canvas id="grain" aria-hidden="true"></canvas>
+<canvas id="film" aria-hidden="true"></canvas>
+<div id="dark" aria-hidden="true"></div>
+<div class="lines" aria-hidden="true"></div><div class="vig" aria-hidden="true"></div>
+
+<a class="hud" id="home" href="/">← 16eyes</a>
+<a class="hud" id="fill" href="/deep/upload">fill the room</a>
+<div class="hud" id="hint">pick something up</div>
+
+<div id="world">
+<!-- three layers: the still room, the moving light and shadows, then the objects (so the light doesn't redraw the grime) -->
+<svg id="bg" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+  <defs>
+    <radialGradient id="glow"><stop offset="0" stop-color="#fff" stop-opacity=".22"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+    <linearGradient id="leak" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".9"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
+    <radialGradient id="shade"><stop offset="0" stop-color="#000" stop-opacity=".95"/><stop offset=".6" stop-color="#000" stop-opacity=".6"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient>
+    <radialGradient id="bglow"><stop offset="0" stop-color="#fff" stop-opacity=".5"/><stop offset=".25" stop-color="#fff" stop-opacity=".14"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+    <linearGradient id="drip" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#000" stop-opacity=".75"/><stop offset="1" stop-color="#000" stop-opacity="0"/></linearGradient>
+    <!-- worn, hand-drawn lines: a slight wobble, then speckles eaten out of them -->
+    <filter id="rough" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="7" result="w"/>
+      <feDisplacementMap in="SourceGraphic" in2="w" scale="4" xChannelSelector="R" yChannelSelector="G" result="d"/>
+      <feTurbulence type="fractalNoise" baseFrequency="0.75" numOctaves="2" seed="2" result="g"/>
+      <feColorMatrix in="g" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -1.3 1.3" result="ga"/>
+      <feComposite in="d" in2="ga" operator="in"/>
+    </filter>
+    <!-- damp stains and soot on the walls and floor -->
+    <filter id="stain" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.004 0.009" numOctaves="3" seed="11"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -4 2.15"/>
+    </filter>
+    <filter id="grit" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="1" seed="5"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 -9 4.2"/>
+    </filter>
+  </defs>
+  <g id="shell"></g>
+</svg>
+<svg id="fx" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+  <g id="shadows"></g>
+  <g id="bulb"></g>
+</svg>
+<svg id="room" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid meet" aria-label="The room">
+
+  <!-- CRT TV -->
+  <g class="obj" id="o-tv" data-open="tv" tabindex="0" role="button" aria-label="TV">
+    <g class="art">
+      <rect class="ln" x="-10" y="206" width="450" height="124"/>
+      <line class="ln2" x1="215" y1="218" x2="215" y2="318"/><line class="ln2" x1="4" y1="246" x2="200" y2="246"/>
+      <circle class="ln2" cx="200" cy="282" r="3"/><circle class="ln2" cx="230" cy="282" r="3"/>
+      <line class="ln2" x1="0" y1="330" x2="0" y2="342"/><line class="ln2" x1="430" y1="330" x2="430" y2="342"/>
+      <rect class="ln" x="30" y="200" width="200" height="6"/>
+      <rect class="ln" x="0" y="0" width="260" height="200" rx="16"/>
+      <rect class="ln" x="20" y="20" width="182" height="150" rx="26"/>
+      <image id="tvstatic" x="26" y="26" width="170" height="138" preserveAspectRatio="none" opacity=".55" style="clip-path: inset(0 round 22px)"/>
+      <circle class="ln" cx="230" cy="48" r="11"/><circle class="ln" cx="230" cy="86" r="11"/>
+      <line class="ln2" x1="216" y1="122" x2="244" y2="122"/><line class="ln2" x1="216" y1="134" x2="244" y2="134"/><line class="ln2" x1="216" y1="146" x2="244" y2="146"/><line class="ln2" x1="216" y1="158" x2="244" y2="158"/>
+      <line class="ln2" x1="110" y1="0" x2="70" y2="-62"/><line class="ln2" x1="130" y1="0" x2="176" y2="-58"/>
+    </g>
+    <text class="lbl" x="130" y="376">TV</text>
+  </g>
+
+  <!-- locked door -->
+  <g class="obj" id="o-door" data-open="door" tabindex="0" role="button" aria-label="Locked door">
+    <g class="art">
+      <rect x="6" y="384" width="158" height="10" fill="url(#leak)" class="under"/>
+      <rect class="ln" x="0" y="0" width="170" height="390"/>
+      <rect class="ln" x="10" y="10" width="150" height="380"/>
+      <rect class="ln2" x="34" y="36" width="102" height="130"/><rect class="ln2" x="34" y="196" width="102" height="160"/>
+      <circle class="ln" cx="140" cy="200" r="7"/>
+      <rect class="ln" x="190" y="160" width="26" height="44" rx="3"/>
+      <circle class="fill blink" cx="203" cy="172" r="3"/>
+      <line class="ln2" x1="196" y1="186" x2="210" y2="186"/><line class="ln2" x1="196" y1="194" x2="210" y2="194"/>
+    </g>
+    <text class="lbl" x="100" y="430">door</text>
+  </g>
+
+  <!-- CD player on a cabinet -->
+  <g class="obj" id="o-cd" data-open="cd" tabindex="0" role="button" aria-label="CD player">
+    <g class="art">
+      <rect class="ln" x="28" y="34" width="164" height="46" rx="18"/>
+      <g class="spin"><circle class="ln" cx="96" cy="36" r="30"/><circle class="ln2" cx="96" cy="36" r="12"/><line class="ln2" x1="96" y1="10" x2="96" y2="22"/><circle class="fill" cx="96" cy="36" r="2.5"/></g>
+      <rect class="ln2" x="140" y="48" width="38" height="12"/>
+      <circle class="fill blink" cx="184" cy="68" r="2"/>
+    </g>
+    <text class="lbl" x="110" y="-14">cd player</text>
+  </g>
+
+  <!-- studio desk -->
+  <g class="obj" id="o-desk" data-open="desk" tabindex="0" role="button" aria-label="Studio desk">
+    <g class="art">
+      <line class="ln2" x1="20" y1="102" x2="20" y2="250"/><line class="ln2" x1="500" y1="102" x2="500" y2="250"/><line class="ln2" x1="60" y1="102" x2="60" y2="226"/><line class="ln2" x1="460" y1="102" x2="460" y2="226"/>
+      <rect class="ln" x="0" y="80" width="520" height="22"/>
+      <rect class="ln" x="8" y="-60" width="66" height="138"/><circle class="ln" cx="41" cy="-20" r="15"/><circle class="ln" cx="41" cy="38" r="24"/>
+      <rect class="ln" x="446" y="-60" width="66" height="138"/><circle class="ln" cx="479" cy="-20" r="15"/><circle class="ln" cx="479" cy="38" r="24"/>
+      <polygon class="ln" points="110,78 410,78 392,22 128,22"/>
+      <g id="faders"></g>
+    </g>
+    <text class="lbl" x="260" y="286">studio</text>
+  </g>
+
+  <!-- answering machine on a side table -->
+  <g class="obj" id="o-am" data-open="am" tabindex="0" role="button" aria-label="Answering machine">
+    <g class="art">
+      <line class="ln2" x1="16" y1="104" x2="10" y2="230"/><line class="ln2" x1="204" y1="104" x2="210" y2="230"/>
+      <rect class="ln" x="0" y="90" width="220" height="14"/>
+      <rect class="ln" x="34" y="34" width="152" height="56" rx="6"/>
+      <rect class="ln2" x="46" y="46" width="62" height="32" rx="3"/><circle class="ln2" cx="64" cy="62" r="7"/><circle class="ln2" cx="90" cy="62" r="7"/>
+      <rect class="ln2" x="120" y="64" width="16" height="10"/><rect class="ln2" x="142" y="64" width="16" height="10"/>
+      <circle class="fill blink" cx="170" cy="48" r="4.5"/>
+      <text x="130" y="56" class="fill" style="font: 700 14px var(--sans)">3</text>
+    </g>
+    <text class="lbl" x="110" y="262">messages</text>
+  </g>
+
+  <!-- photo book on the floor -->
+  <g class="obj" id="o-book" data-open="book" tabindex="0" role="button" aria-label="Photo book">
+    <g class="art">
+      <polygon class="ln" points="-60,70 4,54 30,96 -34,112" transform="rotate(-8)"/>
+      <polygon class="ln" points="0,40 128,14 134,104 12,128"/>
+      <polygon class="ln" points="134,14 262,40 250,128 128,104"/>
+      <polygon class="ln2" points="22,46 112,28 116,90 30,106"/>
+      <polygon class="ln2" points="150,28 240,46 232,106 146,90"/>
+      <line class="ln2" x1="131" y1="14" x2="131" y2="104"/>
+    </g>
+    <text class="lbl" x="130" y="170">photos</text>
+  </g>
+
+  <!-- notebook -->
+  <g class="obj" id="o-nb" data-open="nb" tabindex="0" role="button" aria-label="Notebook">
+    <g class="art">
+      <polygon class="ln" points="0,30 150,10 176,112 22,136"/>
+      <line class="ln2" x1="30" y1="46" x2="150" y2="30"/><line class="ln2" x1="34" y1="64" x2="156" y2="47"/><line class="ln2" x1="38" y1="82" x2="160" y2="65"/><line class="ln2" x1="42" y1="100" x2="164" y2="83"/>
+      <path class="ln2" d="M40 58 q10 -14 18 -2 t20 -4 t16 0 M44 76 q12 -8 22 0 t24 -6" style="stroke:#e8e8e8"/>
+      <line class="ln" x1="104" y1="140" x2="190" y2="96"/>
+      <circle class="ln" cx="-34" cy="112" r="16"/><circle class="ln" cx="218" cy="140" r="12"/>
+    </g>
+    <text class="lbl" x="90" y="186">notebook</text>
+  </g>
+</svg>
+</div>
+
+<div id="panels"></div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const el = (tag, attrs = {}, parent) => { const n = document.createElementNS(svgNS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); if (parent) parent.appendChild(n); return n; };
+  const h = (html) => { const t = document.createElement('template'); t.innerHTML = html.trim(); return t.content.firstElementChild; };
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const clean = n => String(n || '').replace(/\.[a-z0-9]{2,5}$/i, '').replace(/-[A-Za-z0-9]{20,}$/, '').replace(/[_]+/g, ' ');
+  const isVideo = f => /\.(mp4|mov|webm|m4v)$/i.test(f.url || f.name);
+  const isAudio = f => /\.(mp3|wav|m4a|aac|ogg|flac)$/i.test(f.url || f.name);
+  const fmt = s => isFinite(s) ? `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}` : '0:00';
+
+  /* ---------- what Vince uploaded ---------- */
+  let M = { tracks: [], photos: [], bts: [], voicemail: [], tv: [], notebook: [], stems: [] };
+  const ready = fetch('/api/deep/media', { cache: 'no-store' }).then(r => r.json()).then(d => { if (d && d.media) M = Object.assign(M, d.media); }).catch(() => {});
+
+  /* ---------- sound ---------- */
+  let AC = null;
+  const ac = () => { if (!AC) { try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} } if (AC && AC.state === 'suspended') AC.resume(); return AC; };
+  function tone(f, dur = .08, vol = .05, type = 'square', when = 0) {
+    const a = ac(); if (!a) return;
+    const t = a.currentTime + when, o = a.createOscillator(), g = a.createGain();
+    o.type = type; o.frequency.value = f; o.connect(g); g.connect(a.destination);
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + .005); g.gain.setValueAtTime(vol, t + dur - .01); g.gain.linearRampToValueAtTime(0, t + dur);
+    o.start(t); o.stop(t + dur + .02);
+  }
+  let noiseBuf = null;
+  function noise() {
+    const a = ac(); if (!a) return null;
+    if (!noiseBuf) { noiseBuf = a.createBuffer(1, a.sampleRate * 2, a.sampleRate); const d = noiseBuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; }
+    return noiseBuf;
+  }
+  function crackle(dur = .3, vol = .06) {
+    const a = ac(); if (!a) return;
+    const s = a.createBufferSource(), g = a.createGain(), f = a.createBiquadFilter();
+    s.buffer = noise(); f.type = 'bandpass'; f.frequency.value = 2400; f.Q.value = .5;
+    s.connect(f); f.connect(g); g.connect(a.destination);
+    const t = a.currentTime; g.gain.setValueAtTime(vol, t); g.gain.linearRampToValueAtTime(0, t + dur);
+    s.start(t, Math.random()); s.stop(t + dur + .05);
+  }
+  // only one thing in the room makes sound at a time
+  const players = {};
+  function solo(name) { for (const k in players) if (k !== name) players[k](); }
+
+  /* ---------- the room's walls, drawn for the current shape of the screen ---------- */
+  const room = $('room'), shell = $('shell'), bulb = $('bulb');
+  const LAYOUT = {
+    // one cramped room: desk against the wall, TV on a low cabinet with the CD player beside it,
+    // the answering machine by the door, notebook and photo book on the floor
+    land: { vb: [1600, 1000], wall: [290, 140, 1390, 640],
+      at: { 'o-desk': [330, 452, .8], 'o-tv': [760, 343, .9], 'o-cd': [990, 468, .8], 'o-door': [1180, 289, .9], 'o-am': [1160, 650, .85], 'o-nb': [420, 700, .8], 'o-book': [700, 720, .95] } },
+    port: { vb: [1000, 1900], wall: [90, 180, 910, 820],
+      at: { 'o-tv': [110, 520, .85], 'o-cd': [318, 642, .7], 'o-door': [620, 430, .95], 'o-desk': [70, 930, 1.5], 'o-nb': [110, 1400, 1.05], 'o-am': [590, 1360, 1.05], 'o-book': [330, 1620, 1.15] } },
+  };
+  // the floor point each object stands on and how wide it is, for its shadow
+  const objs = [...document.querySelectorAll('.obj')];
+  // an invisible box behind each object, so a tap anywhere on it counts (not just on its lines)
+  const base = {};
+  objs.forEach(o => {
+    const art = o.querySelector('.art'), bb = art.getBBox();
+    art.insertBefore(el('rect', { x: bb.x - 8, y: bb.y - 8, width: bb.width + 16, height: bb.height + 16, fill: 'transparent', stroke: 'none' }), art.firstChild);
+    base[o.id] = { x: bb.x + bb.width / 2, y: bb.y + bb.height, w: bb.width };
+  });
+
+  let L = LAYOUT.land, pivot = { x: 800, y: 0 }, cordLen = 200;
+  let swingA = .16, swingV = 0, inten = 1, pool = null, poolY = 0;
+  const shades = {};
+  const panelOpen = () => !!document.querySelector('#panels .panel');
+  function drawShell() {
+    L = innerWidth / innerHeight < .85 ? LAYOUT.port : LAYOUT.land;
+    const [W, H] = L.vb, [x0, y0, x1, y1] = L.wall, ww = x1 - x0, wh = y1 - y0;
+    ['bg', 'fx', 'room'].forEach(id => $(id).setAttribute('viewBox', `0 0 ${W} ${H}`));
+    shell.innerHTML = '';
+    const poly = (pts, fill) => el('polygon', { points: pts.map(p => p.join(',')).join(' '), fill }, shell);
+    poly([[0, 0], [W, 0], [x1, y0], [x0, y0]], '#0c0c0c');            // ceiling
+    poly([[0, 0], [x0, y0], [x0, y1], [0, H]], '#171717');            // left wall
+    poly([[W, 0], [x1, y0], [x1, y1], [W, H]], '#151515');            // right wall
+    el('rect', { x: x0, y: y0, width: ww, height: wh, fill: '#242424' }, shell);   // back wall
+    poly([[x0, y1], [x1, y1], [W, H], [0, H]], '#131313');            // floor
+    // grime over the surfaces: damp stains, then grit
+    el('rect', { x: 0, y: 0, width: W, height: H, filter: 'url(#stain)', opacity: .75 }, shell);
+    el('rect', { x: 0, y: 0, width: W, height: H, filter: 'url(#grit)', opacity: .08 }, shell);
+    // drips running down the back wall from the ceiling
+    let seed = 41; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    for (let i = 0; i < 26; i++) { const x = x0 + rnd() * ww, len = wh * (.08 + rnd() * .45); el('rect', { x, y: y0, width: 1 + rnd() * 3, height: len, fill: 'url(#drip)', opacity: .35 + rnd() * .5 }, shell); }
+    // a torn poster, taped up crooked
+    const px = x0 + ww * .07, py = y0 + wh * .12, pw = Math.min(ww * .13, 150), ph = pw * 1.42;
+    const poster = el('g', { transform: `rotate(-3 ${px + pw / 2} ${py + ph / 2})` }, shell);
+    el('rect', { x: px, y: py, width: pw, height: ph, fill: '#2a2a2a', stroke: '#333' }, poster);
+    el('text', { x: px + pw * .1, y: py + ph * .3, fill: '#4a4a4a', style: `font: 700 ${pw * .22}px var(--sans); letter-spacing: -.03em` }, poster).textContent = '16eyes';
+    el('rect', { x: px + pw * .1, y: py + ph * .4, width: pw * .8, height: ph * .45, fill: '#202020' }, poster);
+    el('circle', { cx: px + pw * .5, cy: py + ph * .62, r: pw * .14, fill: '#3a3a3a' }, poster);
+    el('polygon', { points: `${px + pw},${py + ph} ${px + pw * .62},${py + ph} ${px + pw},${py + ph * .8}`, fill: '#1b1b1b' }, poster);   // torn corner
+    [[px - 6, py - 4], [px + pw - 14, py - 6]].forEach(([tx, ty]) => el('rect', { x: tx, y: ty, width: 20, height: 9, fill: '#555', opacity: .6, transform: `rotate(${rnd() * 30 - 15} ${tx} ${ty})` }, poster));
+    // a crack from the ceiling corner, a socket and its cable
+    let cx = x1 - ww * .04, cy = y0, d = `M${cx} ${cy}`;
+    for (let i = 0; i < 9; i++) { cx += (rnd() - .6) * 30; cy += 18 + rnd() * 26; d += ` L${cx.toFixed(1)} ${cy.toFixed(1)}`; }
+    el('path', { d, fill: 'none', stroke: '#060606', 'stroke-width': 2 }, shell);
+    el('path', { d, fill: 'none', stroke: '#2e2e2e', 'stroke-width': .8, transform: 'translate(1.5 1)' }, shell);
+    el('rect', { x: x0 + ww * .55, y: y1 - wh * .16, width: 16, height: 24, rx: 2, fill: '#141414', stroke: '#333' }, shell);
+    el('path', { d: `M${x0 + ww * .55 + 8} ${y1 - wh * .16 + 24} q -6 40 -60 ${wh * .16 - 10} t -120 30`, fill: 'none', stroke: '#2a2a2a', 'stroke-width': 2.2 }, shell);
+    // baseboard and room edges
+    el('line', { x1: x0, y1: y1 - 12, x2: x1, y2: y1 - 12, class: 'wall' }, shell);
+    el('rect', { x: x0, y: y0, width: ww, height: wh, class: 'wall' }, shell);
+    [[0, 0, x0, y0], [W, 0, x1, y0], [0, H, x0, y1], [W, H, x1, y1]].forEach(([a, b, c, e]) => el('line', { x1: a, y1: b, x2: c, y2: e, class: 'wall' }, shell));
+    for (let i = 1; i < 9; i++) {   // floorboards running toward the back wall
+      const fx = x0 + ww * i / 9, bx = (fx - W / 2) * 2.6 + W / 2;
+      el('line', { x1: fx, y1: y1, x2: bx, y2: H, class: 'wall soft' }, shell);
+    }
+    for (let i = 1; i < 4; i++) { const k = Math.pow(i / 4, 1.6), y = y1 + (H - y1) * k, xl = x0 - x0 * k, xr = x1 + (W - x1) * k; el('line', { x1: xl, y1: y, x2: xr, y2: y, class: 'wall soft' }, shell); }
+
+    // the bulb on its cord, hung from the ceiling
+    bulb.innerHTML = '';
+    pivot = { x: W / 2, y: 0 }; cordLen = y0 + 70;
+    const g = el('g', { id: 'pend' }, bulb);
+    el('circle', { cx: pivot.x, cy: cordLen, r: 300, fill: 'url(#bglow)', id: 'halo' }, g);
+    el('line', { x1: pivot.x, y1: 0, x2: pivot.x, y2: cordLen - 18, stroke: '#5a5a5a', 'stroke-width': 1.4 }, g);
+    el('rect', { x: pivot.x - 7, y: cordLen - 26, width: 14, height: 14, fill: '#2a2a2a', stroke: '#444' }, g);
+    el('circle', { cx: pivot.x, cy: cordLen, r: 12, fill: '#f4f4f4', id: 'bulbglass' }, g);
+    el('circle', { cx: pivot.x, cy: cordLen, r: 40, fill: 'transparent' }, g);   // easier to grab
+    g.addEventListener('pointerdown', () => { swingV += (swingV >= 0 ? .55 : -.55); tone(220, .04, .03, 'triangle'); crackle(.08, .03); });
+
+    // a soft shadow pool under every object; the light loop moves them (and the bulb's light on the floor)
+    $('shadows').innerHTML = '';
+    pool = el('ellipse', { fill: 'url(#bglow)', rx: ww * .42, ry: (H - y1) * .38 }, $('shadows'));
+    poolY = y1 + (H - y1) * .42;
+    for (const id in L.at) {
+      const [x, y, k] = L.at[id], b = base[id];
+      $(id).setAttribute('transform', `translate(${x} ${y}) scale(${k})`);
+      const pos = { x: x + b.x * k, y: y + b.y * k, w: b.w * k };
+      shades[id] = { pos, contact: el('ellipse', { fill: 'url(#shade)' }, $('shadows')), cast: el('ellipse', { fill: 'url(#shade)' }, $('shadows')) };
+    }
+  }
+  drawShell(); addEventListener('resize', drawShell);
+
+  /* ---------- the bulb: swings on its cord and flickers; its light and the shadows follow it ---------- */
+  let burst = [], nextBurst = performance.now() + 2500, lastT = performance.now();
+  const darkEl = $('dark'), world = $('world');
+  function burstPattern() {
+    const p = [];
+    if (Math.random() < .18) p.push([.3, 120], [1, 60], [.25, 1600 + Math.random() * 1500]);   // a brownout
+    const n = 2 + (Math.random() * 6 | 0);
+    for (let i = 0; i < n; i++) p.push([Math.random() < .5 ? .05 + Math.random() * .2 : .7 + Math.random() * .3, 30 + Math.random() * 120]);
+    return p;
+  }
+  function light(now) {
+    const dt = Math.min(.05, (now - lastT) / 1000); lastT = now;
+    if (!reduce) {
+      // a pendulum that never quite settles
+      const acc = -3.9 * Math.sin(swingA) - .08 * swingV;
+      swingV += acc * dt; swingA += swingV * dt;
+      const E = .5 * swingV * swingV + 3.9 * (1 - Math.cos(swingA));
+      if (E < .045 && Math.abs(swingV) > .02) swingV *= 1 + dt * .6;
+      if (E < .001) swingV += .05;
+      // flicker: a steady hum, then now and then a stutter or a brownout
+      if (!burst.length && now > nextBurst) { burst = burstPattern(); burst.t = now; nextBurst = now + 2500 + Math.random() * 7000; }
+      if (burst.length) {
+        const [lvl, ms] = burst[0]; inten = lvl;
+        if (now - burst.t > ms) { burst.shift(); burst.t = now; if (lvl < .3 && AC && Math.random() < .5) crackle(.04, .015); }
+        world.style.transform = lvl < .3 && Math.random() < .3 ? `translate(${(Math.random() - .5) * 3}px, ${(Math.random() - .5) * 2}px)` : '';
+      } else { inten = .9 + Math.random() * .1; world.style.transform = ''; }
+    }
+    $('pend').setAttribute('transform', `rotate(${(swingA * 180 / Math.PI).toFixed(2)} ${pivot.x} ${pivot.y})`);
+    $('halo').setAttribute('opacity', (.25 + inten * .75).toFixed(2));
+    const v = Math.round(70 + 185 * inten); $('bulbglass').setAttribute('fill', `rgb(${v},${v},${v})`);
+    // where the bulb is, in the room and on screen
+    const lx = pivot.x + Math.sin(swingA) * cordLen, ly = pivot.y + Math.cos(swingA) * cordLen;
+    const m = room.getScreenCTM();
+    if (m) {
+      darkEl.style.setProperty('--lx', (m.a * lx + m.e).toFixed(1) + 'px');
+      darkEl.style.setProperty('--ly', (m.d * ly + m.f).toFixed(1) + 'px');
+      darkEl.style.setProperty('--r1', (m.a * 330).toFixed(0) + 'px');
+      darkEl.style.setProperty('--r2', (m.a * 1050).toFixed(0) + 'px');
+      darkEl.style.setProperty('--k', (1 - inten).toFixed(3));
+    }
+    pool.setAttribute('cx', (lx + (lx - pivot.x) * 1.6).toFixed(1)); pool.setAttribute('cy', poolY);
+    pool.setAttribute('opacity', (.55 * inten).toFixed(2));
+    for (const id in shades) {
+      const { pos, contact, cast } = shades[id], dx = pos.x - lx, dy = Math.max(60, pos.y - ly);
+      const lean = dx / dy;   // shadows fall away from the bulb, longer the further it leans
+      contact.setAttribute('cx', pos.x); contact.setAttribute('cy', pos.y + 2);
+      contact.setAttribute('rx', pos.w * .6); contact.setAttribute('ry', pos.w * .07 + 7);
+      contact.setAttribute('opacity', '1');
+      cast.setAttribute('cx', pos.x + lean * pos.w * .7); cast.setAttribute('cy', pos.y + 10);
+      cast.setAttribute('rx', pos.w * (.7 + Math.min(1.6, Math.abs(lean)) * .6)); cast.setAttribute('ry', pos.w * .16 + 12);
+      cast.setAttribute('opacity', (.9 * inten).toFixed(2));
+    }
+    requestAnimationFrame(light);
+  }
+  requestAnimationFrame(light);
+
+  /* ---------- old film: scratches, dust, the odd tracking roll ---------- */
+  {
+    const c = $('film'), g = c.getContext('2d');
+    let roll = -1;
+    const size = () => { c.width = innerWidth / 2 | 0; c.height = innerHeight / 2 | 0; };
+    size(); addEventListener('resize', size);
+    const frame = () => {
+      const w = c.width, hh = c.height; g.clearRect(0, 0, w, hh);
+      if (!panelOpen()) {
+        const n = Math.random() < .5 ? 0 : 1 + (Math.random() * 2 | 0);
+        for (let i = 0; i < n; i++) { const x = Math.random() * w; g.strokeStyle = `rgba(220,220,220,${.06 + Math.random() * .16})`; g.lineWidth = Math.random() < .8 ? .6 : 1.2; g.beginPath(); g.moveTo(x, 0); g.bezierCurveTo(x + (Math.random() - .5) * 8, hh * .3, x + (Math.random() - .5) * 8, hh * .7, x + (Math.random() - .5) * 6, hh); g.stroke(); }
+        for (let i = 0, d = Math.random() * 7 | 0; i < d; i++) { g.fillStyle = Math.random() < .6 ? 'rgba(0,0,0,.8)' : 'rgba(230,230,230,.5)'; g.beginPath(); g.ellipse(Math.random() * w, Math.random() * hh, .6 + Math.random() * 2, .6 + Math.random() * 1.6, Math.random() * 3, 0, 7); g.fill(); }
+        if (Math.random() < .02) { g.strokeStyle = 'rgba(0,0,0,.7)'; g.lineWidth = .8; g.beginPath(); let x = Math.random() * w, y = Math.random() * hh; g.moveTo(x, y); for (let k = 0; k < 6; k++) { x += (Math.random() - .5) * 30; y += (Math.random() - .5) * 30; g.lineTo(x, y); } g.stroke(); }   // a hair
+        if (roll < 0 && Math.random() < .004) roll = hh;
+        if (roll >= 0) { const bh = hh * .06; g.fillStyle = 'rgba(255,255,255,.06)'; g.fillRect(0, roll, w, bh); for (let k = 0; k < 40; k++) { g.fillStyle = `rgba(255,255,255,${Math.random() * .25})`; g.fillRect(Math.random() * w, roll + Math.random() * bh, 2 + Math.random() * 30, 1); } roll -= hh * .03; if (roll < -bh) roll = -1; }
+      }
+      if (!reduce) setTimeout(() => requestAnimationFrame(frame), 70);
+    };
+    frame();
+  }
+
+  // little faders on the desk
+  for (let i = 0; i < 12; i++) { const x = 150 + i * 20, y = 34 + (i * 37 % 26); el('line', { x1: x, y1: 30, x2: x, y2: 70, class: 'ln2' }, $('faders')); el('rect', { x: x - 4, y, width: 8, height: 6, class: 'fill' }, $('faders')); }
+
+  // the TV in the room shows live static
+  {
+    const c = document.createElement('canvas'); c.width = 64; c.height = 48; const g = c.getContext('2d'), im = g.createImageData(64, 48), img = $('tvstatic');
+    const tick = () => { const d = im.data; for (let i = 0; i < d.length; i += 4) { const v = Math.random() * 255 | 0; d[i] = d[i + 1] = d[i + 2] = v; d[i + 3] = 255; } g.putImageData(im, 0, 0); img.setAttribute('href', c.toDataURL()); };
+    tick(); if (!reduce) setInterval(tick, 110);
+  }
+
+  /* ---------- panels ---------- */
+  const panels = $('panels');
+  let open = null, lastFocus = null;
+  function openPanel(title, body, onClose) {
+    closePanel(true);
+    lastFocus = document.activeElement;
+    const p = h(`<section class="panel" role="dialog" aria-modal="true" aria-label="${esc(title)}"><header><h2>${esc(title)}</h2><button class="x" type="button">close ✕</button></header><div class="body"></div></section>`);
+    p.querySelector('.body').appendChild(body);
+    p.querySelector('.x').addEventListener('click', () => closePanel());
+    panels.appendChild(p); open = { p, onClose };
+    tone(880, .05, .04); crackle(.15, .04);
+    setTimeout(() => p.querySelector('.x').focus(), 50);
+    $('hint').style.opacity = 0;
+  }
+  function closePanel(silent) {
+    if (!open) return;
+    const { p, onClose } = open; open = null;
+    if (onClose) onClose();
+    p.remove();
+    if (!silent) { tone(440, .05, .04); if (lastFocus) lastFocus.focus(); }
+  }
+  addEventListener('keydown', e => { if (e.key === 'Escape') closePanel(); });
+
+  const OPENERS = {};
+  document.querySelectorAll('.obj').forEach(o => {
+    const go = () => { ac(); ready.then(() => OPENERS[o.dataset.open]()); };
+    o.addEventListener('click', go);
+    o.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } });
+    o.addEventListener('pointerenter', () => tone(1320, .025, .02));
+  });
+
+  /* ---------- placeholder pictures (until uploads exist) ---------- */
+  function placeholderFrame(i, label, w = 800, hgt = 1000) {
+    const c = document.createElement('canvas'); c.width = w; c.height = hgt; const g = c.getContext('2d');
+    const gr = g.createLinearGradient(0, 0, w * (i % 2), hgt);
+    gr.addColorStop(0, `hsl(0 0% ${8 + (i * 13) % 20}%)`); gr.addColorStop(1, `hsl(0 0% ${30 + (i * 29) % 40}%)`);
+    g.fillStyle = gr; g.fillRect(0, 0, w, hgt);
+    // a few shapes so each frame reads as a different "photo": skyline, a figure, light
+    g.fillStyle = 'rgba(0,0,0,.75)';
+    let x = 0; while (x < w) { const bw = 30 + (x * 7 + i * 31) % 90, bh = 120 + ((x * 13 + i * 17) % 380); g.fillRect(x, hgt - bh, bw, bh); x += bw + 6; }
+    g.fillStyle = 'rgba(255,255,255,.85)'; g.beginPath(); g.arc(w * (.2 + (i * .17) % .6), hgt * .25, 30 + i * 4, 0, 7); g.fill();
+    const im = g.getImageData(0, 0, w, hgt), d = im.data;
+    for (let p = 0; p < d.length; p += 4) { const n = (Math.random() - .5) * 60; d[p] += n; d[p + 1] += n; d[p + 2] += n; }
+    g.putImageData(im, 0, 0);
+    g.fillStyle = '#fff'; g.font = `700 ${w / 22}px Helvetica, Arial, sans-serif`; g.fillText(label, w * .06, hgt * .08);
+    return c.toDataURL('image/jpeg', .8);
+  }
+  function placeholderPage(i) {
+    const w = 900, hgt = 1200, c = document.createElement('canvas'); c.width = w; c.height = hgt; const g = c.getContext('2d');
+    g.fillStyle = '#e6e5e1'; g.fillRect(0, 0, w, hgt);
+    g.strokeStyle = 'rgba(0,0,0,.14)'; g.lineWidth = 2;
+    for (let y = 160; y < hgt - 40; y += 46) { g.beginPath(); g.moveTo(0, y); g.lineTo(w, y); g.stroke(); }
+    g.beginPath(); g.moveTo(110, 0); g.lineTo(110, hgt); g.stroke();
+    g.fillStyle = '#111'; g.font = '700 30px Helvetica, Arial, sans-serif'; g.fillText(`UNTITLED 0${i + 1}`, 130, 110);
+    let seed = i * 977 + 13; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    g.strokeStyle = '#141414'; g.lineCap = 'round';
+    for (let y = 196; y < hgt - 80; y += 46) {
+      if (rnd() < .18) continue;
+      let x = 130 + rnd() * 30; const end = w - 60 - rnd() * 260;
+      while (x < end) {   // a "word" of handwriting-like loops
+        const len = 30 + rnd() * 90; g.lineWidth = 2 + rnd() * 1.6; g.beginPath(); g.moveTo(x, y - 8);
+        for (let t = 0; t < len; t += 4) g.lineTo(x + t, y - 8 - Math.abs(Math.sin(t * .35 + rnd())) * (10 + rnd() * 8));
+        g.stroke(); x += len + 14 + rnd() * 10;
+      }
+      if (rnd() < .2) { g.lineWidth = 3; g.beginPath(); g.moveTo(130, y - 14); g.lineTo(end, y - 18); g.stroke(); }   // crossed out
+    }
+    // an eye doodle in the margin
+    g.lineWidth = 3; g.beginPath(); g.ellipse(w - 150, 240 + i * 180, 70, 30, 0, 0, 7); g.stroke();
+    g.beginPath(); g.arc(w - 150, 240 + i * 180, 18, 0, 7); g.fillStyle = '#111'; g.fill();
+    return c.toDataURL('image/jpeg', .85);
+  }
+
+  /* ---------- 1. CD player ---------- */
+  const audio = new Audio(); audio.preload = 'metadata';
+  let trackIx = -1;
+  players.cd = () => { audio.pause(); };
+  audio.addEventListener('play', () => $('o-cd').classList.add('playing'));
+  audio.addEventListener('pause', () => $('o-cd').classList.remove('playing'));
+  audio.addEventListener('ended', () => { if (M.tracks.length) playTrack((trackIx + 1) % M.tracks.length); });
+  function playTrack(i) {
+    const t = M.tracks[i]; if (!t) return;
+    solo('cd'); trackIx = i; audio.src = t.url; audio.play().catch(() => {});
+    document.querySelectorAll('.tracks li').forEach((li, k) => li.classList.toggle('cur', k === i));
+  }
+  OPENERS.cd = () => {
+    const b = h(`<div class="cdp"><div class="disc" id="disc"></div><div></div></div>`);
+    const side = b.children[1], disc = b.children[0];
+    let raf = 0;
+    if (M.tracks.length) {
+      side.innerHTML = `<ol class="tracks">${M.tracks.map((t, i) => `<li data-i="${i}"><span>${String(i + 1).padStart(2, '0')}</span>${esc(clean(t.name))}</li>`).join('')}</ol>
+        <div class="row"><button class="btn" data-a="prev">◀◀</button><button class="btn" data-a="play">play</button><button class="btn" data-a="next">▶▶</button></div>
+        <div class="bar"><i></i></div><div class="cap" id="tm">0:00 / 0:00</div>`;
+      side.querySelectorAll('li').forEach(li => li.addEventListener('click', () => playTrack(+li.dataset.i)));
+      const pb = side.querySelector('[data-a=play]'), fill = side.querySelector('.bar i'), tm = side.querySelector('#tm');
+      side.querySelector('[data-a=prev]').onclick = () => playTrack((Math.max(trackIx, 0) - 1 + M.tracks.length) % M.tracks.length);
+      side.querySelector('[data-a=next]').onclick = () => playTrack((trackIx + 1) % M.tracks.length);
+      pb.onclick = () => { if (trackIx < 0) return playTrack(0); if (audio.paused) { solo('cd'); audio.play(); } else audio.pause(); };
+      side.querySelector('.bar').onclick = e => { const r = e.currentTarget.getBoundingClientRect(); if (audio.duration) audio.currentTime = (e.clientX - r.left) / r.width * audio.duration; };
+      const loop = () => { pb.textContent = audio.paused ? 'play' : 'pause'; disc.classList.toggle('go', !audio.paused);
+        fill.style.width = (audio.duration ? audio.currentTime / audio.duration * 100 : 0) + '%'; tm.textContent = `${fmt(audio.currentTime)} / ${fmt(audio.duration)}`; raf = requestAnimationFrame(loop); };
+      loop();
+      if (trackIx >= 0) side.querySelectorAll('li')[trackIx]?.classList.add('cur');
+    } else {
+      // placeholder until songs are uploaded: his SoundCloud, in black and white
+      solo('cd');
+      side.innerHTML = `<iframe class="sc" title="16eyes on SoundCloud" allow="autoplay" src="https://w.soundcloud.com/player/?url=${encodeURIComponent('https://soundcloud.com/16eyes')}&color=%23111111&auto_play=false&hide_related=true&show_comments=false&show_user=true&show_reposts=false&visual=false"></iframe><div class="ph">placeholder · playing from soundcloud until songs are uploaded</div>`;
+      disc.classList.add('go');
+    }
+    openPanel('cd player', b, () => cancelAnimationFrame(raf));
+  };
+
+  /* ---------- 2. photo book ---------- */
+  OPENERS.book = () => {
+    let items = [...M.photos, ...M.bts];
+    const ph = !items.length;
+    if (ph) items = Array.from({ length: 8 }, (_, i) => ({ url: placeholderFrame(i, i < 5 ? `PHOTO 0${i + 1}` : `BTS 0${i - 4}`), name: '' }));
+    const b = h(`<div class="book"><div class="spread"><div class="pg"></div><div class="pg"></div></div>
+      <div class="row" style="margin-top:16px"><button class="btn" data-a="prev">◀</button><span class="cap" id="pgn"></span><button class="btn" data-a="next">▶</button></div>
+      ${ph ? '<div class="ph">placeholder pages · add photos and bts in "fill the room"</div>' : ''}</div>`);
+    const pages = b.querySelectorAll('.pg'), pgn = b.querySelector('#pgn');
+    const step = () => innerWidth <= 640 ? 1 : 2;
+    let at = 0;
+    function fillPage(pg, it, n) {
+      pg.innerHTML = '';
+      if (!it) return;
+      const m = isVideo(it) ? h(`<video src="${esc(it.url)}" controls playsinline preload="metadata"></video>`) : h(`<img alt="" src="${esc(it.url)}">`);
+      if (m.tagName === 'IMG') m.addEventListener('click', () => viewer([it], 0, 'photo'));
+      if (m.tagName === 'VIDEO') m.addEventListener('play', () => solo('book'));
+      pg.appendChild(m); pg.appendChild(h(`<div class="cap n">${n}</div>`));
+    }
+    function show(dir) {
+      const s = step();
+      pages.forEach((pg, k) => { fillPage(pg, items[at + k], at + k + 1); if (dir) { pg.classList.remove('flip'); void pg.offsetWidth; pg.classList.add('flip'); } });
+      pgn.textContent = `${at + 1}${s > 1 && items[at + 1] ? '–' + (at + 2) : ''} / ${items.length}`;
+      if (dir) crackle(.12, .05);
+    }
+    b.querySelector('[data-a=prev]').onclick = () => { if (at > 0) { at = Math.max(0, at - step()); show(-1); } };
+    b.querySelector('[data-a=next]').onclick = () => { if (at + step() < items.length) { at += step(); show(1); } };
+    show(0);
+    players.book = () => b.querySelectorAll('video').forEach(v => v.pause());
+    openPanel('photo book', b, () => { players.book(); delete players.book; });
+  };
+
+  /* zoomable viewer (photos, notebook pages) */
+  function viewer(items, start, title) {
+    let i = start, z = 1, tx = 0, ty = 0;
+    const b = h(`<div class="nb"><div class="view"><img alt=""></div>
+      <div class="row" style="margin-top:14px">${items.length > 1 ? '<button class="btn" data-a="prev">◀</button>' : ''}<span class="cap" id="vn"></span>${items.length > 1 ? '<button class="btn" data-a="next">▶</button>' : ''}</div>
+      <div class="ph">tap to zoom · drag to look around</div></div>`);
+    const view = b.querySelector('.view'), img = b.querySelector('img'), vn = b.querySelector('#vn');
+    const apply = () => { img.style.transform = `translate(${tx}px, ${ty}px) scale(${z})`; view.classList.toggle('zoomed', z > 1); };
+    function center() { const r = view.getBoundingClientRect(); tx = -img.offsetWidth / 2; ty = -img.offsetHeight / 2; z = 1; apply(); }
+    function load() { img.src = items[i].url; vn.textContent = `${i + 1} / ${items.length}`; img.onload = center; }
+    function zoomAt(cx, cy, nz) {
+      const r = view.getBoundingClientRect(), px = cx - r.left - r.width / 2, py = cy - r.top - r.height / 2;
+      tx = px - (px - tx) * nz / z; ty = py - (py - ty) * nz / z; z = nz; apply();
+    }
+    let down = null, moved = false;
+    view.addEventListener('pointerdown', e => { down = { x: e.clientX, y: e.clientY, tx, ty }; moved = false; view.setPointerCapture(e.pointerId); });
+    view.addEventListener('pointermove', e => { if (!down) return; const dx = e.clientX - down.x, dy = e.clientY - down.y; if (Math.abs(dx) + Math.abs(dy) > 4) moved = true; if (z > 1 && moved) { tx = down.tx + dx; ty = down.ty + dy; apply(); } });
+    view.addEventListener('pointerup', e => { if (!moved) { if (z > 1) center(); else zoomAt(e.clientX, e.clientY, 2.6); } down = null; });
+    view.addEventListener('wheel', e => { e.preventDefault(); zoomAt(e.clientX, e.clientY, Math.min(6, Math.max(1, z * (e.deltaY < 0 ? 1.15 : 1 / 1.15)))); if (z <= 1.01) center(); }, { passive: false });
+    const nav = d => { i = (i + d + items.length) % items.length; load(); crackle(.1, .04); };
+    b.querySelector('[data-a=prev]') && (b.querySelector('[data-a=prev]').onclick = () => nav(-1));
+    b.querySelector('[data-a=next]') && (b.querySelector('[data-a=next]').onclick = () => nav(1));
+    openPanel(title, b);
+    load();
+  }
+
+  /* ---------- 3. notebook ---------- */
+  OPENERS.nb = () => {
+    const pages = M.notebook.filter(f => !isVideo(f) && !isAudio(f));
+    if (pages.length) return viewer(pages, 0, 'notebook');
+    viewer(Array.from({ length: 4 }, (_, i) => ({ url: placeholderPage(i) })), 0, 'notebook · placeholder');
+  };
+
+  /* ---------- 4. answering machine ---------- */
+  let vmStop = null;
+  players.am = () => { if (vmStop) vmStop(); };
+  function fakeVoicemail(i) {
+    // stand-in "voice note": tape hiss and a muffled hummed melody
+    const a = ac(); if (!a) return { dur: 0, stop() {} };
+    const t0 = a.currentTime + .05, dur = 7 + i, out = a.createGain(); out.gain.value = .9; out.connect(a.destination);
+    const lp = a.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 900; lp.connect(out);
+    const hiss = a.createBufferSource(); hiss.buffer = noise(); hiss.loop = true; const hg = a.createGain(); hg.gain.value = .025; hiss.connect(hg); hg.connect(out);
+    const notes = [[220, 246.9, 261.6, 246.9, 196], [174.6, 196, 220, 196, 164.8], [261.6, 233.1, 220, 196, 220]][i % 3];
+    const o = a.createOscillator(), og = a.createGain(), vib = a.createOscillator(), vg = a.createGain();
+    o.type = 'triangle'; vib.frequency.value = 5.2; vg.gain.value = 3; vib.connect(vg); vg.connect(o.frequency); o.connect(og); og.connect(lp);
+    og.gain.setValueAtTime(0, t0);
+    notes.forEach((f, k) => { const t = t0 + .6 + k * 1.15; o.frequency.setValueAtTime(f, t); og.gain.linearRampToValueAtTime(.16, t + .12); og.gain.setValueAtTime(.16, t + .85); og.gain.linearRampToValueAtTime(.02, t + 1.1); });
+    og.gain.linearRampToValueAtTime(0, t0 + dur - .2);
+    [hiss, o, vib].forEach(n => { n.start(t0); n.stop(t0 + dur); });
+    return { dur, stop() { try { [hiss, o, vib].forEach(n => n.stop()); } catch (e) {} } };
+  }
+  OPENERS.am = () => {
+    const real = M.voicemail.filter(isAudio);
+    const msgs = real.length ? real.map(f => ({ label: clean(f.name), url: f.url })) : [
+      { label: 'msg 1 · 2:47 am · placeholder' }, { label: 'msg 2 · unreleased snippet · placeholder' }, { label: 'msg 3 · voice note · placeholder' }];
+    const b = h(`<div class="am"><div class="top"><div class="cap">16eyes · line 2</div><div class="led blink"></div></div>
+      <div class="row" style="justify-content:space-between;margin-bottom:18px"><div class="lcd" id="lcd">${String(msgs.length).padStart(2, '0')}</div><div class="cap" style="text-align:right">new<br>messages</div></div>
+      <div class="tape"><div class="reel"></div><div class="reel"></div></div>
+      <div class="row"><button class="btn" data-a="back">◀</button><button class="btn" data-a="play">play</button><button class="btn" data-a="skip">▶▶</button></div>
+      <p class="say" id="say">press play</p>${real.length ? '' : '<div class="ph">placeholder messages · add voice notes and snippets in "fill the room"</div>'}</div>`);
+    const lcd = b.querySelector('#lcd'), say = b.querySelector('#say'), pb = b.querySelector('[data-a=play]');
+    let i = 0, timer = 0, el2 = null, playing = false;
+    function stop() { playing = false; clearTimeout(timer); if (el2) { el2.pause(); el2 = null; } if (vmStop) { const s = vmStop; vmStop = null; s(); } b.classList.remove('go'); pb.textContent = 'play'; }
+    function next() { i++; if (i >= msgs.length) { stop(); i = 0; say.textContent = 'end of messages'; tone(1000, .7, .05, 'sine'); lcd.textContent = '00'; return; } play(); }
+    function play() {
+      stop(); solo('am'); playing = true; b.classList.add('go'); pb.textContent = 'stop';
+      lcd.textContent = String(i + 1).padStart(2, '0'); say.textContent = msgs[i].label;
+      tone(1000, .45, .05, 'sine');   // the beep
+      timer = setTimeout(() => {
+        if (!playing) return;
+        if (msgs[i].url) { el2 = new Audio(msgs[i].url); el2.onended = next; el2.play().catch(() => {}); vmStop = () => { if (el2) el2.pause(); }; }
+        else { const v = fakeVoicemail(i); vmStop = v.stop; timer = setTimeout(next, v.dur * 1000 + 200); }
+      }, 650);
+    }
+    pb.onclick = () => playing ? stop() : play();
+    b.querySelector('[data-a=skip]').onclick = () => { if (playing) next(); else { i = (i + 1) % msgs.length; say.textContent = msgs[i].label; lcd.textContent = String(i + 1).padStart(2, '0'); } };
+    b.querySelector('[data-a=back]').onclick = () => { i = Math.max(0, playing ? i : i - 1); play(); };
+    players.am = stop;
+    openPanel('answering machine', b, stop);
+  };
+
+  /* ---------- 5. CRT TV ---------- */
+  OPENERS.tv = () => {
+    const vids = M.tv.filter(isVideo);
+    const chans = vids.length ? vids.map(v => ({ kind: 'video', url: v.url, name: clean(v.name) })) :
+      [{ kind: 'static' }, { kind: 'bars' }, { kind: 'crawl' }, { kind: 'nosignal' }];
+    const b = h(`<div class="tvbox"><div class="scr"><canvas width="320" height="240"></canvas><video playsinline loop hidden></video><div class="osd" id="osd"></div></div>
+      <div class="row" style="margin-top:16px"><button class="btn" data-a="dn">ch ▼</button><button class="btn" data-a="up">ch ▲</button></div>
+      ${vids.length ? '' : '<div class="ph">placeholder channels · add videos in "fill the room"</div>'}</div>`);
+    const cv = b.querySelector('canvas'), g = cv.getContext('2d'), vid = b.querySelector('video'), osd = b.querySelector('#osd');
+    const im = g.createImageData(320, 240);
+    let ch = 0, flipT = 0, raf = 0, osdT = 0;
+    function setCh(n) {
+      ch = (n + chans.length) % chans.length; flipT = performance.now() + 380; crackle(.38, .08);
+      osd.textContent = `CH ${String(ch + 3).padStart(2, '0')}`; osd.style.opacity = 1; clearTimeout(osdT); osdT = setTimeout(() => osd.style.opacity = 0, 1800);
+      vid.pause(); vid.hidden = true;
+      const c = chans[ch];
+      if (c.kind === 'video') { vid.src = c.url; setTimeout(() => { if (chans[ch] === c) { vid.hidden = false; solo('tv'); vid.play().catch(() => {}); } }, 380); }
+    }
+    function staticNoise(a = 1) { const d = im.data; for (let i = 0; i < d.length; i += 4) { const v = Math.random() * 255 * a | 0; d[i] = d[i + 1] = d[i + 2] = v; d[i + 3] = 255; } g.putImageData(im, 0, 0); }
+    function draw(t) {
+      const c = chans[ch];
+      if (t < flipT || c.kind === 'static') staticNoise();
+      else if (c.kind === 'bars') {
+        const shades = [235, 200, 170, 135, 100, 70, 35];
+        shades.forEach((s, k) => { g.fillStyle = `rgb(${s},${s},${s})`; g.fillRect(k * 320 / 7, 0, 320 / 7 + 1, 170); });
+        g.fillStyle = '#111'; g.fillRect(0, 170, 320, 70); g.fillStyle = '#fff'; g.font = '700 18px Helvetica, Arial'; g.fillText('16EYES', 120, 212);
+      } else if (c.kind === 'crawl') {
+        g.fillStyle = '#000'; g.fillRect(0, 0, 320, 240); g.fillStyle = '#eee'; g.font = '700 44px Helvetica, Arial';
+        const x = 320 - ((t / 14) % 1100); g.fillText('16EYES · HOUSTON · LATE NIGHT ·', x, 136);
+      } else if (c.kind === 'nosignal') {
+        staticNoise(.18); g.fillStyle = '#fff'; g.font = '700 22px Helvetica, Arial'; g.textAlign = 'center';
+        g.fillText('NO SIGNAL', 160, 116); g.font = '700 14px Helvetica, Arial'; g.fillText(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), 160, 142); g.textAlign = 'left';
+      }
+      cv.style.opacity = (c.kind === 'video' && t >= flipT) ? 0 : 1;
+      raf = requestAnimationFrame(draw);
+    }
+    b.querySelector('[data-a=up]').onclick = () => setCh(ch + 1);
+    b.querySelector('[data-a=dn]').onclick = () => setCh(ch - 1);
+    const keys = e => { if (e.key === 'ArrowUp') setCh(ch + 1); if (e.key === 'ArrowDown') setCh(ch - 1); };
+    addEventListener('keydown', keys);
+    players.tv = () => vid.pause();
+    openPanel('tv', b, () => { cancelAnimationFrame(raf); vid.pause(); vid.removeAttribute('src'); removeEventListener('keydown', keys); delete players.tv; });
+    setCh(0); raf = requestAnimationFrame(draw);
+  };
+
+  /* ---------- 6. locked door ---------- */
+  OPENERS.door = () => {
+    const b = h(`<div><div class="dr"><div class="frame" id="frame"><div class="leaf"><i></i></div></div>
+      <div><div class="code" id="code">····</div><div class="pad">${[1,2,3,4,5,6,7,8,9].map(n => `<button class="btn" data-k="${n}">${n}</button>`).join('')}<button class="btn" data-k="c">clr</button><button class="btn" data-k="0">0</button><button class="btn" data-k="e">enter</button></div>
+      <div class="cap" style="margin-top:14px;text-align:center" id="dmsg">the code drops with the merch</div></div></div><div class="behind" id="behind" hidden></div></div>`);
+    const code = b.querySelector('#code'), dmsg = b.querySelector('#dmsg'), frame = b.querySelector('#frame'), behind = b.querySelector('#behind');
+    let v = '';
+    const show = () => code.textContent = (v + '····').slice(0, Math.max(4, v.length)).replace(/\d/g, '•');
+    async function enter() {
+      if (!v) return;
+      dmsg.textContent = '...';
+      let r = null; try { r = await fetch('/api/deep/door', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code: v }) }); } catch (e) {}
+      const d = r ? await r.json().catch(() => ({})) : {};
+      if (d.ok) {
+        [0, .09, .18].forEach(w => tone(140 + w * 600, .06, .06, 'square', w)); setTimeout(() => crackle(1.2, .05), 300);
+        frame.classList.add('open'); $('o-door').classList.add('door-open'); dmsg.textContent = 'open';
+        const items = d.items || [];
+        behind.innerHTML = items.length ? items.map(it => isVideo(it) ? `<video src="${esc(it.url)}" controls playsinline></video>` : isAudio(it) ? `<audio src="${esc(it.url)}" controls></audio>` : `<img alt="" src="${esc(it.url)}">`).join('')
+          : `<div style="font-weight:700;font-size:22px">you found it.</div><div class="ph">placeholder · whatever goes in "behind the locked door" shows up here</div>`;
+        setTimeout(() => { behind.hidden = false; behind.scrollIntoView({ behavior: 'smooth' }); }, 900);
+      } else {
+        tone(110, .35, .06, 'sawtooth'); code.classList.remove('shake'); void code.offsetWidth; code.classList.add('shake');
+        dmsg.textContent = r && r.status === 429 ? 'too many tries. wait a few minutes.' : 'wrong code';
+        v = ''; show();
+      }
+    }
+    b.querySelectorAll('[data-k]').forEach(k => k.addEventListener('click', () => {
+      const x = k.dataset.k;
+      if (x === 'c') v = ''; else if (x === 'e') return enter(); else if (v.length < 8) { v += x; tone(700 + +x * 40, .06, .04); }
+      show();
+    }));
+    const keys = e => { if (/^\d$/.test(e.key) && v.length < 8) { v += e.key; tone(700, .05, .04); show(); } else if (e.key === 'Enter') enter(); else if (e.key === 'Backspace') { v = v.slice(0, -1); show(); } };
+    addEventListener('keydown', keys);
+    openPanel('door', b, () => removeEventListener('keydown', keys));
+  };
+
+  /* ---------- 7. studio desk: mix the stems ---------- */
+  OPENERS.desk = () => {
+    const real = M.stems.filter(isAudio);
+    const names = real.length ? real.map(f => clean(f.name)) : ['drums', 'bass', 'pad', 'keys', 'tape'];
+    const b = h(`<div class="desk"><div class="strips">${names.map((n, i) => `<div class="strip" data-i="${i}"><div class="nm">${esc(n)}</div>
+      <div class="fadr"><div class="meter"><i></i></div><input class="v" type="range" min="0" max="1" step="0.01" value="0.8" aria-label="${esc(n)} volume"></div>
+      <div class="row"><button class="btn" data-m>m</button><button class="btn" data-s>s</button></div></div>`).join('')}</div>
+      <div class="trans"><button class="btn" id="tp">play</button><label class="cap">speed <input id="spd" type="range" min="0.7" max="1" step="0.01" value="1"></label><span class="cap" id="spv">1.00x</span></div>
+      <div class="ph" id="dph">${real.length ? 'loading stems…' : 'placeholder stems · add the real stems of a song in "fill the room"'}</div></div>`);
+    const a = ac(); if (!a) { openPanel('studio', b); return; }
+    const master = a.createGain(); master.gain.value = .9; master.connect(a.destination);
+    const ch = names.map(() => { const g = a.createGain(), an = a.createAnalyser(); an.fftSize = 256; g.connect(an); an.connect(master); return { g, an, vol: .8, mute: false, solo: false, buf: new Float32Array(256) }; });
+    function levels() { const anySolo = ch.some(c => c.solo); ch.forEach(c => c.g.gain.setTargetAtTime((c.mute || (anySolo && !c.solo)) ? 0 : c.vol, a.currentTime, .02)); }
+    b.querySelectorAll('.strip').forEach((s, i) => {
+      s.querySelector('input').oninput = e => { ch[i].vol = +e.target.value; levels(); };
+      const m = s.querySelector('[data-m]'), so = s.querySelector('[data-s]');
+      m.onclick = () => { ch[i].mute = !ch[i].mute; m.classList.toggle('on', ch[i].mute); levels(); };
+      so.onclick = () => { ch[i].solo = !ch[i].solo; so.classList.toggle('on', ch[i].solo); levels(); };
+    });
+    let speed = 1, playing = false, sources = [], timer = 0, bufs = null, startAt = 0, offset = 0;
+    const spd = b.querySelector('#spd'), spv = b.querySelector('#spv'), tp = b.querySelector('#tp');
+    spd.oninput = () => { speed = +spd.value; spv.textContent = speed.toFixed(2) + 'x'; sources.forEach(s => s.playbackRate && s.playbackRate.setTargetAtTime(speed, a.currentTime, .05)); };
+
+    // real stems: decode them all, then start every one at the same instant
+    const loadReal = real.length ? Promise.all(real.map(f => fetch(f.url).then(r => r.arrayBuffer()).then(x => a.decodeAudioData(x)))).then(x => { bufs = x; b.querySelector('#dph').textContent = ''; }).catch(() => { b.querySelector('#dph').textContent = "couldn't load the stems"; }) : null;
+
+    // placeholder stems: a slow loop, scheduled a little ahead
+    const BARS = [[110, 130.8, 164.8], [87.3, 110, 130.8], [130.8, 164.8, 196], [98, 123.5, 146.8]];   // Am F C G
+    let step = 0, nextT = 0;
+    function synthStep(t, s, dur) {
+      const bar = Math.floor(s / 16) % 4, k = s % 16, chord = BARS[bar];
+      const hit = (node, f, v, len, type = 'sine', drop = 0) => { const o = a.createOscillator(), g = a.createGain(); o.type = type; o.frequency.setValueAtTime(f, t); if (drop) o.frequency.exponentialRampToValueAtTime(drop, t + len * .6); o.connect(g); g.connect(node); g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(.001, t + len); o.start(t); o.stop(t + len + .02); };
+      const nz = (node, v, len, hp) => { const n = a.createBufferSource(), f = a.createBiquadFilter(), g = a.createGain(); n.buffer = noise(); f.type = hp ? 'highpass' : 'bandpass'; f.frequency.value = hp ? 7000 : 1800; n.connect(f); f.connect(g); g.connect(node); g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(.001, t + len); n.start(t, Math.random()); n.stop(t + len + .02); };
+      if (k === 0 || k === 10) hit(ch[0].g, 120, .9, .5, 'sine', 38);
+      if (k === 8) nz(ch[0].g, .35, .3);
+      if (k % 2 === 0) nz(ch[0].g, k % 4 ? .05 : .09, .06, true);
+      if (k === 0 || k === 7 || k === 10) hit(ch[1].g, chord[0] / 2, .5, dur * (k === 0 ? 6 : 3), 'sine');
+      if (k === 0) chord.forEach(f => [0, 1].forEach(d => { const o = a.createOscillator(), g = a.createGain(), lp = a.createBiquadFilter(); o.type = 'sawtooth'; o.frequency.value = f * 2 * (d ? 1.004 : .996); lp.type = 'lowpass'; lp.frequency.value = 900; o.connect(lp); lp.connect(g); g.connect(ch[2].g); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(.05, t + dur * 4); g.gain.setValueAtTime(.05, t + dur * 13); g.gain.linearRampToValueAtTime(0, t + dur * 16); o.start(t); o.stop(t + dur * 16 + .05); }));
+      if (k % 4 === 2 || k === 15) hit(ch[3].g, chord[(k >> 2) % 3] * 4, .12, .9, 'sine');
+      if (k % 4 === 0) nz(ch[4].g, .04, dur * 4, false);
+    }
+    function sched() {
+      const dur = 60 / (72 * speed) / 4;
+      while (nextT < a.currentTime + .25) { synthStep(nextT, step, dur); nextT += dur; step++; }
+    }
+    function start() {
+      solo('desk'); playing = true; tp.textContent = 'stop'; $('o-desk').classList.add('playing');
+      if (real.length) {
+        if (!bufs) { loadReal.then(() => { if (playing && bufs) start(); }); return; }
+        const t = a.currentTime + .08; startAt = t;
+        sources = bufs.map((bf, i) => { const s = a.createBufferSource(); s.buffer = bf; s.loop = true; s.playbackRate.value = speed; s.connect(ch[i].g); s.start(t, offset % bf.duration); return s; });
+      } else { nextT = a.currentTime + .08; step = 0; sched(); timer = setInterval(sched, 50); }
+    }
+    function stop() {
+      playing = false; tp.textContent = 'play'; $('o-desk').classList.remove('playing');
+      clearInterval(timer); sources.forEach(s => { try { s.stop(); } catch (e) {} }); sources = [];
+    }
+    tp.onclick = () => playing ? stop() : start();
+    // meters
+    let raf = 0;
+    const meters = b.querySelectorAll('.meter i');
+    const meter = () => { ch.forEach((c, i) => { c.an.getFloatTimeDomainData(c.buf); let p = 0; for (const x of c.buf) p = Math.max(p, Math.abs(x)); meters[i].style.height = Math.min(100, p * 140) + '%'; }); raf = requestAnimationFrame(meter); };
+    meter();
+    players.desk = stop;
+    openPanel('studio', b, () => { stop(); cancelAnimationFrame(raf); setTimeout(() => master.disconnect(), 200); delete players.desk; });
+  };
+
+  /* ---------- film grain over everything ---------- */
+  {
+    const c = $('grain'), g = c.getContext('2d'), W = 360, H = 225; c.width = W; c.height = H;
+    const im = g.createImageData(W, H);
+    const frame = () => { const d = im.data; for (let i = 0; i < d.length; i += 4) { const v = Math.random() * 255 | 0; d[i] = d[i + 1] = d[i + 2] = v; d[i + 3] = 255; } g.putImageData(im, 0, 0); if (!reduce) setTimeout(() => requestAnimationFrame(frame), 50); };
+    frame();
+  }
+  setTimeout(() => { $('hint').style.opacity = 0; }, 6000);
+})();
+</script>
+</body>
+</html>
