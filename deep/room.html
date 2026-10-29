@@ -46,7 +46,11 @@ button { font-family: var(--sans); }
 .obj .lbl { fill: var(--ink); font: 700 13px var(--sans); letter-spacing: .26em; text-transform: uppercase; text-anchor: middle; opacity: 0; transition: opacity .25s; pointer-events: none; }
 .obj:hover .art, .obj:focus-visible .art { transform: translateY(-7px); filter: url(#rough) drop-shadow(0 0 7px rgba(255,255,255,.55)); }
 .obj:hover .lbl, .obj:focus-visible .lbl { opacity: 1; }
-@media (hover: none) { .obj .lbl { opacity: .75; } }
+@media (hover: none) {
+  .obj .lbl { opacity: .75; }
+  /* phones: no lift on tap, so Safari never parks the drawings on a blurry, low-res layer */
+  .obj .art, .obj:hover .art, .obj:focus-visible .art { transition: none; transform: none; filter: url(#rough); }
+}
 .blink { animation: blink 1.1s steps(1) infinite; }
 @keyframes blink { 50% { opacity: 0; } }
 .spin { transform-box: fill-box; transform-origin: center; }
@@ -484,6 +488,7 @@ input[type=range].v { writing-mode: vertical-lr; direction: rtl; width: 26px; he
   /* ---------- the bulb: swings on its cord and flickers; its light and the shadows follow it ---------- */
   let burst = [], nextBurst = performance.now() + 2500, lastT = performance.now();
   const darkEl = $('dark'), world = $('world');
+  const shake = !matchMedia('(hover: none)').matches;   // the room jolting on brownouts blurs everything in iPhone Safari
   function burstPattern() {
     const p = [];
     if (Math.random() < .18) p.push([.3, 120], [1, 60], [.25, 1600 + Math.random() * 1500]);   // a brownout
@@ -505,7 +510,7 @@ input[type=range].v { writing-mode: vertical-lr; direction: rtl; width: 26px; he
       if (burst.length) {
         const [lvl, ms] = burst[0]; inten = lvl;
         if (now - burst.t > ms) { burst.shift(); burst.t = now; if (lvl < .3 && AC && Math.random() < .5) crackle(.04, .015); }
-        world.style.transform = lvl < .3 && Math.random() < .3 ? `translate(${(Math.random() - .5) * 3}px, ${(Math.random() - .5) * 2}px)` : '';
+        world.style.transform = shake && lvl < .3 && Math.random() < .3 ? `translate(${(Math.random() - .5) * 3}px, ${(Math.random() - .5) * 2}px)` : '';
       } else { inten = .9 + Math.random() * .1; world.style.transform = ''; }
     }
     $('pend').setAttribute('transform', `rotate(${(swingA * 180 / Math.PI).toFixed(2)} ${pivot.x} ${pivot.y})`);
