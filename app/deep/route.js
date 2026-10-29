@@ -3,12 +3,14 @@
 
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import { isAuthed, noStore } from "../../lib/deep.js";
+import { isAuthed, isOwner, noStore } from "../../lib/deep.js";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request) {
   const file = isAuthed(request) ? "room.html" : "enter.html";
-  const html = await readFile(path.join(process.cwd(), "deep", file), "utf8");
+  let html = await readFile(path.join(process.cwd(), "deep", file), "utf8");
+  // the "fill the room" link is only for Vince
+  if (file === "room.html" && !isOwner(request)) html = html.replace(/<a class="hud" id="fill"[^>]*>[^<]*<\/a>/, "");
   return new Response(html, { headers: { "Content-Type": "text/html; charset=utf-8", ...noStore } });
 }

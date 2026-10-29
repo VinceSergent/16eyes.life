@@ -1,7 +1,7 @@
 // Lists what Vince has uploaded for the room, grouped by folder (tracks, photos, bts, ...).
 // The "door" folder is left out: it only comes back from the door, with the right code.
 import { list, del } from "@vercel/blob";
-import { KINDS, isAuthed, noStore } from "../../../../lib/deep.js";
+import { KINDS, isAuthed, noStore, isOwner } from "../../../../lib/deep.js";
 
 export const dynamic = "force-dynamic";
 
@@ -35,7 +35,7 @@ export async function GET(request) {
 }
 
 export async function DELETE(request) {
-  if (!isAuthed(request)) return Response.json({ ok: false }, { status: 401, headers: noStore });
+  if (!isOwner(request)) return Response.json({ ok: false }, { status: 401, headers: noStore });
   const { url } = await request.json().catch(() => ({}));
   if (!url || !process.env.BLOB_READ_WRITE_TOKEN || !new URL(url).pathname.startsWith("/deep/")) return Response.json({ ok: false }, { status: 400, headers: noStore });
   await del(url);
