@@ -81,6 +81,21 @@ function Place({ kind, title, help, files, onDone, storage }) {
   );
 }
 
+function Phones() {
+  const [count, setCount] = useState(null);
+  useEffect(() => { fetch("/api/deep/phones", { cache: "no-store" }).then(r => r.json()).then(d => setCount(d.ok ? d.count : -1)).catch(() => setCount(-1)); }, []);
+  return (
+    <div style={s.card}>
+      <div style={s.row}>
+        <div><div style={{ fontWeight: 700, fontSize: 16 }}>Phone list</div>
+          <div style={{ ...s.small, textTransform: "none", letterSpacing: 0, marginTop: 4 }}>
+            {count === null ? "Counting…" : count < 0 ? "Couldn't load the list." : `${count} ${count === 1 ? "number" : "numbers"} signed up through the phone.`}</div></div>
+        {count > 0 && <a style={{ ...s.btn, textDecoration: "none" }} href="/api/deep/phones?csv=1">Download</a>}
+      </div>
+    </div>
+  );
+}
+
 export default function Uploader() {
   const [data, setData] = useState(null);
   const load = useCallback(() => fetch("/api/deep/media?all=1", { cache: "no-store" }).then(r => r.json()).then(setData).catch(() => setData({ ok: false })), []);
@@ -92,6 +107,7 @@ export default function Uploader() {
         <div style={s.small}><a href="/deep" style={{ color: "#888" }}>← back to the room</a></div>
         <h1 style={{ ...s.h1, marginTop: 18 }}>Fill the room</h1>
         <div style={s.small}>Only you can see this page.</div>
+        <Phones />
         {data && !storage && <div style={{ ...s.card, borderColor: "#fff" }}>File storage isn't switched on yet, so uploads are off. Until then the room shows placeholders.</div>}
         {PLACES.map(([kind, title, help]) => <Place key={kind} kind={kind} title={title} help={help} files={data?.media?.[kind]} onDone={load} storage={storage} />)}
       </div>
