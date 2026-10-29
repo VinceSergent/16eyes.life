@@ -76,7 +76,6 @@ button { font-family: var(--sans); }
 body.leaving #off { opacity: 1; pointer-events: all; }
 body.leaving #world { animation: crtoff .45s ease-in forwards; }
 @keyframes crtoff { 0% { transform: none; filter: brightness(1); } 60% { transform: scale(1, .006); filter: brightness(4); } 100% { transform: scale(0, .006); filter: brightness(8); } }
-#fill { top: calc(14px + env(safe-area-inset-top, 0px)); right: 16px; }
 #hint { left: 50%; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); white-space: nowrap; color: #555; transition: opacity 1.5s; }
 
 /* panels ("screens") */
@@ -187,7 +186,6 @@ input[type=range].v { writing-mode: vertical-lr; direction: rtl; width: 26px; he
 <div class="lines" aria-hidden="true"></div><div class="vig" aria-hidden="true"></div>
 
 <a class="hud" id="home" href="/">← exit</a>
-<a class="hud" id="fill" href="/deep/upload">fill the room</a>
 <div class="hud" id="hint">pick something up</div>
 
 <div id="world">
