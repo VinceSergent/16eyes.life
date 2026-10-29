@@ -687,7 +687,7 @@ input[type=range].v { writing-mode: vertical-lr; direction: rtl; width: 26px; he
     } else {
       // placeholder until songs are uploaded: his SoundCloud, in black and white
       solo('cd');
-      side.innerHTML = `<iframe class="sc" title="16eyes on SoundCloud" allow="autoplay" src="https://w.soundcloud.com/player/?url=${encodeURIComponent('https://soundcloud.com/16eyes')}&color=%23111111&auto_play=false&hide_related=true&show_comments=false&show_user=true&show_reposts=false&visual=false"></iframe><div class="ph">placeholder · playing from soundcloud until songs are uploaded</div>`;
+      side.innerHTML = `<iframe class="sc" title="16eyes on SoundCloud" allow="autoplay" src="https://w.soundcloud.com/player/?url=${encodeURIComponent('https://soundcloud.com/16eyes')}&color=%23111111&auto_play=false&hide_related=true&show_comments=false&show_user=true&show_reposts=false&visual=false"></iframe>`;
       disc.classList.add('go');
     }
     openPanel('cd player', b, () => cancelAnimationFrame(raf));
@@ -700,7 +700,7 @@ input[type=range].v { writing-mode: vertical-lr; direction: rtl; width: 26px; he
     if (ph) items = Array.from({ length: 8 }, (_, i) => ({ url: placeholderFrame(i, i < 5 ? `PHOTO 0${i + 1}` : `BTS 0${i - 4}`), name: '' }));
     const b = h(`<div class="book"><div class="spread"><div class="pg"></div><div class="pg"></div></div>
       <div class="row" style="margin-top:16px"><button class="btn" data-a="prev">◀</button><span class="cap" id="pgn"></span><button class="btn" data-a="next">▶</button></div>
-      ${ph ? '<div class="ph">placeholder pages · add photos and bts in "fill the room"</div>' : ''}</div>`);
+      </div>`);
     const pages = b.querySelectorAll('.pg'), pgn = b.querySelector('#pgn');
     const step = () => innerWidth <= 640 ? 1 : 2;
     let at = 0;
@@ -773,12 +773,12 @@ input[type=range].v { writing-mode: vertical-lr; direction: rtl; width: 26px; he
   OPENERS.am = () => {
     const real = M.voicemail.filter(isAudio);
     const msgs = real.length ? real.map(f => ({ label: clean(f.name), url: f.url })) : [
-      { label: 'msg 1 · 2:47 am · placeholder' }, { label: 'msg 2 · unreleased snippet · placeholder' }, { label: 'msg 3 · voice note · placeholder' }];
+      { label: 'msg 1 · 2:47 am' }, { label: 'msg 2 · unreleased snippet' }, { label: 'msg 3 · voice note' }];
     const b = h(`<div class="am"><div class="top"><div class="cap">16eyes · line 2</div><div class="led blink"></div></div>
       <div class="row" style="justify-content:space-between;margin-bottom:18px"><div class="lcd" id="lcd">${String(msgs.length).padStart(2, '0')}</div><div class="cap" style="text-align:right">new<br>messages</div></div>
       <div class="tape"><div class="reel"></div><div class="reel"></div></div>
       <div class="row"><button class="btn" data-a="back">◀</button><button class="btn" data-a="play">play</button><button class="btn" data-a="skip">▶▶</button></div>
-      <p class="say" id="say">press play</p>${real.length ? '' : '<div class="ph">placeholder messages · add voice notes and snippets in "fill the room"</div>'}</div>`);
+      <p class="say" id="say">press play</p></div>`);
     const lcd = b.querySelector('#lcd'), say = b.querySelector('#say'), pb = b.querySelector('[data-a=play]');
     let i = 0, timer = 0, el2 = null, playing = false;
     function stop() { playing = false; clearTimeout(timer); if (el2) { el2.pause(); el2 = null; } if (vmStop) { const s = vmStop; vmStop = null; s(); } b.classList.remove('go'); pb.textContent = 'play'; }
@@ -807,7 +807,7 @@ input[type=range].v { writing-mode: vertical-lr; direction: rtl; width: 26px; he
       [{ kind: 'static' }, { kind: 'bars' }, { kind: 'crawl' }, { kind: 'nosignal' }];
     const b = h(`<div class="tvbox"><div class="scr"><canvas width="320" height="240"></canvas><video playsinline loop hidden></video><div class="osd" id="osd"></div></div>
       <div class="row" style="margin-top:16px"><button class="btn" data-a="dn">ch ▼</button><button class="btn" data-a="up">ch ▲</button></div>
-      ${vids.length ? '' : '<div class="ph">placeholder channels · add videos in "fill the room"</div>'}</div>`);
+      </div>`);
     const cv = b.querySelector('canvas'), g = cv.getContext('2d'), vid = b.querySelector('video'), osd = b.querySelector('#osd');
     const im = g.createImageData(320, 240);
     let ch = 0, flipT = 0, raf = 0, osdT = 0;
@@ -863,7 +863,7 @@ input[type=range].v { writing-mode: vertical-lr; direction: rtl; width: 26px; he
         frame.classList.add('open'); $('o-door').classList.add('door-open'); dmsg.textContent = 'open';
         const items = d.items || [];
         behind.innerHTML = items.length ? items.map(it => isVideo(it) ? `<video src="${esc(it.url)}" controls playsinline></video>` : isAudio(it) ? `<audio src="${esc(it.url)}" controls></audio>` : `<img alt="" src="${esc(it.url)}">`).join('')
-          : `<div style="font-weight:700;font-size:22px">you found it.</div><div class="ph">placeholder · whatever goes in "behind the locked door" shows up here</div>`;
+          : `<div style="font-weight:700;font-size:22px">you found it.</div>`;
         setTimeout(() => { behind.hidden = false; behind.scrollIntoView({ behavior: 'smooth' }); }, 900);
       } else {
         tone(110, .35, .06, 'sawtooth'); code.classList.remove('shake'); void code.offsetWidth; code.classList.add('shake');
@@ -893,7 +893,7 @@ input[type=range].v { writing-mode: vertical-lr; direction: rtl; width: 26px; he
       <div class="fadr"><div class="meter"><i></i></div><input class="v" type="range" min="0" max="1" step="0.01" value="0.8" aria-label="${esc(n)} volume"></div>
       <div class="row"><button class="btn" data-m>m</button><button class="btn" data-s>s</button></div></div>`).join('')}</div>
       <div class="trans"><button class="btn" id="tp">play</button><label class="cap">speed <input id="spd" type="range" min="0.7" max="1" step="0.01" value="1"></label><span class="cap" id="spv">1.00x</span></div>
-      <div class="ph" id="dph">${has ? 'loading stems…' : 'placeholder stems · upload drums, vocals, bass and instruments in "fill the room"'}</div></div>`);
+      <div class="ph" id="dph">${has ? 'loading stems…' : ''}</div></div>`);
     const a = ac(); if (!a) { openPanel('studio', b); return; }
     const master = a.createGain(); master.gain.value = .9; master.connect(a.destination);
     const ch = names.map(() => { const g = a.createGain(), an = a.createAnalyser(); an.fftSize = 256; g.connect(an); an.connect(master); return { g, an, vol: .8, mute: false, solo: false, buf: new Float32Array(256) }; });
@@ -909,7 +909,7 @@ input[type=range].v { writing-mode: vertical-lr; direction: rtl; width: 26px; he
     spd.oninput = () => { speed = +spd.value; spv.textContent = speed.toFixed(2) + 'x'; sources.forEach(s => s.playbackRate && s.playbackRate.setTargetAtTime(speed, a.currentTime, .05)); };
 
     // real stems: decode them all, then start every one at the same instant
-    const loadReal = has ? Promise.all(slots.map(f => f ? fetch(f.url).then(r => r.arrayBuffer()).then(x => a.decodeAudioData(x)) : null)).then(x => { bufs = x; b.querySelector('#dph').textContent = slots.every(Boolean) ? '' : 'missing: ' + names.filter((n, i) => !slots[i]).join(', '); }).catch(() => { b.querySelector('#dph').textContent = "couldn't load the stems"; }) : null;
+    const loadReal = has ? Promise.all(slots.map(f => f ? fetch(f.url).then(r => r.arrayBuffer()).then(x => a.decodeAudioData(x)) : null)).then(x => { bufs = x; b.querySelector('#dph').textContent = ''; }).catch(() => { b.querySelector('#dph').textContent = "couldn't load the stems"; }) : null;
 
     // placeholder stems: a slow loop, scheduled a little ahead
     const BARS = [[110, 130.8, 164.8], [87.3, 110, 130.8], [130.8, 164.8, 196], [98, 123.5, 146.8]];   // Am F C G
