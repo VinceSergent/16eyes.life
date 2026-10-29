@@ -10,7 +10,7 @@ const PLACES = [
   ["bts", "Photo book: BTS", "Behind-the-scenes photos and videos."],
   ["voicemail", "Answering machine", "Snippets and voice notes (audio)."],
   ["tv", "CRT TV", "Videos. Each one becomes a channel."],
-  ["stems", "Studio desk", "Stems of one song (drums, bass, vocals...), same length."],
+  ["stems", "Studio desk", "Four stems of one song, all the same length, named drums, vocals, bass and instruments."],
   ["door", "Behind the locked door", "Anything. Only shows after the door code."],
 ];
 
