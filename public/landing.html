@@ -75,7 +75,7 @@ body { margin: 0; background: var(--bg); color: var(--ice); font-family: var(--s
 .gl .stage .deeper { border-color: transparent; }
 .deeper:focus-visible { outline: 1px dotted var(--aqua); outline-offset: 4px; }
 /* one line of news under the logo */
-.news { font-family: var(--sans); font-weight: 700; font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: var(--dim); text-decoration: none; padding: 2px 6px; white-space: nowrap; }
+.news { font-family: var(--sans); font-weight: 700; font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: var(--dim); text-decoration: none; padding: 2px 20px; white-space: nowrap; }   /* side padding leaves room for the two stars */
 .news:focus-visible { outline: 1px dotted var(--aqua); outline-offset: 4px; }
 .note { font-size: 9px; letter-spacing: .16em; color: #3b5058; text-transform: uppercase; }
 
@@ -973,6 +973,14 @@ body { margin: 0; background: var(--bg); color: var(--ice); font-family: var(--s
     g.font = sansAt(nw); if (hasLS) g.letterSpacing = (1.6 * S) + 'px';
     g.fillStyle = 'rgba(214,236,243,.82)'; g.fillText(nw.textContent.toUpperCase(), nr.cx, nr.cy);
     if (hasLS) g.letterSpacing = '0px';
+    // a little five-point star on each side, twinkling out of step
+    for (const [sx, ph] of [[nr.x + 9 * S, 0], [nr.x + nr.w - 9 * S, 1.7]]) {
+      const tw = .75 + .25 * Math.sin(t * 3.1 + ph), r = 6.8 * S * (.88 + .12 * tw);
+      g.save(); g.translate(sx, nr.cy - .5 * S); g.fillStyle = `rgba(240,250,255,${.6 + .4 * tw})`;
+      g.shadowColor = 'rgba(240,250,255,.8)'; g.shadowBlur = 2.5 * S * tw;
+      g.beginPath(); for (let j = 0; j < 10; j++) { const a = -Math.PI / 2 + j * Math.PI / 5, q = j % 2 ? r * .42 : r; g.lineTo(Math.cos(a) * q, Math.sin(a) * q); } g.closePath(); g.fill();
+      g.restore();
+    }
     // go deeper
     const dp = $('deeper'), dr = rect(dp);
     // a lit frame that breathes, so the way in is easy to spot
