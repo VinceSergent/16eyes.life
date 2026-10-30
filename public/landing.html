@@ -563,6 +563,7 @@ body { background: var(--bg); color: var(--ice); font-family: var(--sans); overf
     glc.width = ui.width = W; glc.height = ui.height = H;
     gl.viewport(0, 0, W, H);
     buildLogo();
+    rainCols = [];
   }
 
   // logo: heavy wide type built out of horizontal phosphor lines
@@ -826,9 +827,46 @@ body { background: var(--bg); color: var(--ice); font-family: var(--sans); overf
     }
   }
 
+  // gun rain (from the moodboard): columns of rifle silhouettes falling slowly behind everything, very faint
+  const gun = document.createElement('canvas');
+  function buildGun() {
+    const len = Math.round(68 * S), wd = Math.round(len * .3);
+    gun.width = wd; gun.height = len; const x = gun.getContext('2d'), u = len / 100;
+    x.fillStyle = '#e8f6fa';
+    // drawn barrel-down: stock at the top, muzzle at the bottom
+    x.save(); x.translate(wd * .42, 0);
+    x.beginPath(); x.moveTo(-6 * u, 0); x.lineTo(5 * u, 0); x.lineTo(4 * u, 22 * u); x.lineTo(-4 * u, 22 * u); x.closePath(); x.fill();   // stock
+    x.fillRect(-5 * u, 22 * u, 10 * u, 34 * u);                       // receiver
+    x.beginPath(); x.moveTo(5 * u, 30 * u); x.lineTo(13 * u, 26 * u); x.lineTo(15 * u, 30 * u); x.lineTo(7 * u, 36 * u); x.closePath(); x.fill();   // grip
+    x.beginPath(); x.moveTo(5 * u, 40 * u); x.quadraticCurveTo(22 * u, 44 * u, 24 * u, 56 * u); x.lineTo(18 * u, 58 * u); x.quadraticCurveTo(15 * u, 50 * u, 5 * u, 50 * u); x.closePath(); x.fill();   // magazine
+    x.fillRect(-3.5 * u, 56 * u, 7 * u, 14 * u);                      // handguard
+    x.fillRect(-1.6 * u, 70 * u, 3.2 * u, 30 * u);                    // barrel
+    x.fillRect(-5 * u, 90 * u, 3.6 * u, 4 * u);                       // front sight
+    x.restore();
+  }
+  let rainCols = [];
+  function buildRain() {
+    buildGun();
+    const step = 50 * S, n = Math.ceil(W / step) + 1;
+    rainCols = Array.from({ length: n }, (_, i) => ({ x: i * step + (Math.random() - .5) * 6 * S, off: Math.random() * H, v: (10 + Math.random() * 14) * S, gap: (10 + Math.random() * 14) * S, flip: Math.random() < .5 }));
+  }
+  function drawRain(t) {
+    if (!gun.width || !rainCols.length) buildRain();
+    const gh = gun.height;
+    g.save(); g.globalAlpha = .16;
+    for (const c of rainCols) {
+      const pitch = gh + c.gap, y0 = ((c.off + (reduce ? 0 : t * c.v)) % pitch) - pitch;
+      for (let y = y0; y < H; y += pitch) {
+        if (c.flip) { g.save(); g.translate(c.x * 2 + gun.width, 0); g.scale(-1, 1); g.drawImage(gun, c.x, y); g.restore(); }
+        else g.drawImage(gun, c.x, y);
+      }
+    }
+    g.restore();
+  }
   function drawUI(t) {
     g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, W, H);
     if (deep) { g.clearRect(0, 0, W, H); return; }
+    drawRain(t);
     g.globalAlpha = 1 - lift * .92;
     // CD
     const d = rect($('disc'));
