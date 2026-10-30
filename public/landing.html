@@ -450,10 +450,11 @@ body { margin: 0; background: var(--bg); color: var(--ice); font-family: var(--s
   void main(){
     vec2 uv = v;
     vec2 cc = uv*2. - 1.;
-    // phones (tall screens) get flat glass that runs edge to edge; wide screens keep the curve
+    // phones (tall screens): the glass still bulges, but it's zoomed so the curve fills the screen edge to edge
     float tall = step(R.x, R.y);
     vec2 asp = mix(vec2(1.), vec2(R.x/R.y, 1.), tall);
-    cc *= 1. + .055*dot(cc, cc) * (1. - tall);       // curved glass
+    float bulge = mix(.055, .09, tall);
+    cc *= (1. + bulge*dot(cc*asp, cc*asp)) / mix(1., 1. + bulge*dot(asp, asp), tall);   // curved glass
     vec2 b = cc*.5 + .5;
     if (b.x < 0. || b.x > 1. || b.y < 0. || b.y > 1.) { gl_FragColor = vec4(0.,0.,0.,1.); return; }
     float t = T;
