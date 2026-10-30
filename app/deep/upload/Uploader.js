@@ -11,7 +11,7 @@ const PLACES = [
   ["voicemail", "Answering machine", "Snippets and voice notes (audio)."],
   ["tv", "CRT TV", "Videos. Each one becomes a channel."],
   ["stems", "Studio desk", "Four stems of one song, all the same length, named drums, vocals, bass and instruments."],
-  ["poster", "Poster on the wall", "One image. The newest one goes up on the wall."],
+  ["poster", "Poster on the wall", "Up to three images, square like album covers. The newest three go up on the wall."],
   ["door", "Behind the locked door", "Anything. Only shows after the door code."],
 ];
 
