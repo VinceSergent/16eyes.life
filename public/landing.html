@@ -450,7 +450,9 @@ body { margin: 0; background: var(--bg); color: var(--ice); font-family: var(--s
   void main(){
     vec2 uv = v;
     vec2 cc = uv*2. - 1.;
-    cc *= 1. + .055*dot(cc, cc);                      // curved glass
+    // on a tall phone screen, measure the glass by real distance so the narrow sides don't go dark
+    vec2 asp = R.x < R.y ? vec2(R.x/R.y, 1.) : vec2(1.);
+    cc *= 1. + .055*dot(cc*asp, cc*asp);              // curved glass
     vec2 b = cc*.5 + .5;
     if (b.x < 0. || b.x > 1. || b.y < 0. || b.y > 1.) { gl_FragColor = vec4(0.,0.,0.,1.); return; }
     float t = T;
@@ -535,7 +537,7 @@ body { margin: 0; background: var(--bg); color: var(--ice); font-family: var(--s
     col += band * smoothstep(.93, 1., bn) * gm * .35;
 
     // glass: vignette, rounded edge, flicker
-    col *= smoothstep(1.35, .4, length(cc * vec2(.92, 1.)));
+    col *= smoothstep(1.35, .4, length(cc * asp * vec2(.92, 1.)));
     col *= smoothstep(0., .015, b.x) * smoothstep(1., .985, b.x) * smoothstep(0., .02, b.y) * smoothstep(1., .98, b.y);
     col *= .965 + .035 * sin(t*57.);
     col = vec3(dot(col, vec3(.3, .59, .11)));   // 100% black and white
