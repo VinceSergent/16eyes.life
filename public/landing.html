@@ -64,7 +64,8 @@ body { background: var(--bg); color: var(--ice); font-family: var(--sans); overf
 .menu .alert { position: absolute; left: 50%; top: 100%; transform: translateX(-50%); white-space: nowrap; color: var(--red); font-size: 10px; letter-spacing: .2em; }
 /* EP countdown under the disc: days:hours:minutes:seconds.hundredths */
 .count { margin-top: -6px; font-family: var(--sans); font-weight: 700; font-size: 11px; letter-spacing: .14em; color: var(--dim); font-variant-numeric: tabular-nums; white-space: nowrap; }
-.deeper { margin-top: 8px; background: none; border: 0; padding: 2px 6px; cursor: pointer; font-family: var(--sans); font-weight: 700; font-size: 9px; letter-spacing: .24em; text-transform: uppercase; color: var(--dim); }
+.deeper { margin-top: 10px; background: none; border: 1px solid var(--dim); padding: 9px 16px 9px 20px; cursor: pointer; font-family: var(--sans); font-weight: 700; font-size: 12px; letter-spacing: .3em; text-transform: uppercase; color: var(--ice); }
+.gl .stage .deeper { border-color: transparent; }
 .deeper:focus-visible { outline: 1px dotted var(--aqua); outline-offset: 4px; }
 /* one line of news under the logo */
 .news { font-family: var(--sans); font-weight: 700; font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: var(--dim); text-decoration: none; padding: 2px 6px; white-space: nowrap; }
@@ -888,8 +889,13 @@ body { background: var(--bg); color: var(--ice); font-family: var(--sans); overf
     if (hasLS) g.letterSpacing = '0px';
     // go deeper
     const dp = $('deeper'), dr = rect(dp);
-    g.font = sansAt(dp); if (hasLS) g.letterSpacing = (2.6 * S) + 'px';
-    g.fillStyle = `rgba(214,236,243,${.35 + .45 * (0.5 + 0.5 * Math.sin(t * 1.8))})`; g.fillText('GO DEEPER...', dr.cx, dr.cy);
+    // a lit frame that breathes, so the way in is easy to spot
+    const dpul = 0.5 + 0.5 * Math.sin(t * 2.2);
+    g.save(); g.shadowColor = 'rgba(234,252,255,.9)'; g.shadowBlur = (6 + 10 * dpul) * S;
+    g.strokeStyle = `rgba(234,252,255,${.45 + .45 * dpul})`; g.lineWidth = 1.2 * S; g.strokeRect(dr.x, dr.y, dr.w, dr.h);
+    g.restore();
+    g.font = sansAt(dp); if (hasLS) g.letterSpacing = (3.6 * S) + 'px';
+    g.fillStyle = `rgba(234,252,255,${.75 + .25 * dpul})`; g.fillText('GO DEEPER...', dr.cx + 1.8 * S, dr.cy);
     if (hasLS) g.letterSpacing = '0px';
     g.globalAlpha = 1;
 
