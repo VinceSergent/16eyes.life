@@ -973,12 +973,12 @@ body { margin: 0; background: var(--bg); color: var(--ice); font-family: var(--s
     g.font = sansAt(nw); if (hasLS) g.letterSpacing = (1.6 * S) + 'px';
     g.fillStyle = 'rgba(214,236,243,.82)'; g.fillText(nw.textContent.toUpperCase(), nr.cx, nr.cy);
     if (hasLS) g.letterSpacing = '0px';
-    // a little four-point star on each side, twinkling out of step
+    // a little five-point star on each side, twinkling out of step
     for (const [sx, ph] of [[nr.x + 9 * S, 0], [nr.x + nr.w - 9 * S, 1.7]]) {
-      const tw = .75 + .25 * Math.sin(t * 3.1 + ph), r = 5.2 * S * tw, k = r * .2;
+      const tw = .75 + .25 * Math.sin(t * 3.1 + ph), r = 6.8 * S * (.88 + .12 * tw);
       g.save(); g.translate(sx, nr.cy - .5 * S); g.fillStyle = `rgba(240,250,255,${.6 + .4 * tw})`;
-      g.shadowColor = 'rgba(240,250,255,.8)'; g.shadowBlur = 4 * S * tw;
-      g.beginPath(); g.moveTo(0, -r); g.quadraticCurveTo(k, -k, r, 0); g.quadraticCurveTo(k, k, 0, r); g.quadraticCurveTo(-k, k, -r, 0); g.quadraticCurveTo(-k, -k, 0, -r); g.fill();
+      g.shadowColor = 'rgba(240,250,255,.8)'; g.shadowBlur = 2.5 * S * tw;
+      g.beginPath(); for (let j = 0; j < 10; j++) { const a = -Math.PI / 2 + j * Math.PI / 5, q = j % 2 ? r * .42 : r; g.lineTo(Math.cos(a) * q, Math.sin(a) * q); } g.closePath(); g.fill();
       g.restore();
     }
     // go deeper
