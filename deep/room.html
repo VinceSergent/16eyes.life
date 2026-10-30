@@ -32,7 +32,9 @@ button { font-family: var(--sans); }
 @keyframes power { 0% { opacity: 0; transform: scaleY(.01); filter: brightness(3); } 35% { opacity: 1; transform: scaleY(.01); } 65% { transform: scaleY(1); filter: brightness(1.6) blur(.5px); } 100% { filter: none; } }
 #room .wall, #bg .wall { fill: none; stroke: #3a3a3a; stroke-width: 1.4; }
 #bg .wall.soft { stroke: #222; }
-#pend { cursor: grab; }
+#pend { cursor: grab; touch-action: none; }
+#pend.held { cursor: grabbing; }
+#posterhit { pointer-events: all; cursor: zoom-in; outline: none; }
 /* the bulb's light: everything far from it falls into the dark (positions set by the light loop) */
 #dark { position: fixed; inset: 0; z-index: 5; pointer-events: none;
   background: radial-gradient(circle at var(--lx, 50%) var(--ly, 20%), rgba(0,0,0,calc(var(--k, 0) * .9)) 0, rgba(0,0,0,calc(.1 + var(--k, 0) * .65)) var(--r1, 260px), rgba(0,0,0,calc(.5 + var(--k, 0) * .4)) var(--r2, 900px)); }
@@ -198,6 +200,7 @@ input[type=range].v { writing-mode: vertical-lr; direction: rtl; width: 26px; he
     <radialGradient id="bglow"><stop offset="0" stop-color="#fff" stop-opacity=".5"/><stop offset=".25" stop-color="#fff" stop-opacity=".14"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
     <linearGradient id="drip" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#000" stop-opacity=".75"/><stop offset="1" stop-color="#000" stop-opacity="0"/></linearGradient>
     <!-- worn, hand-drawn lines: a slight wobble, then speckles eaten out of them -->
+    <filter id="mono"><feColorMatrix type="saturate" values="0"/><feComponentTransfer><feFuncR type="linear" slope="1.1" intercept="-.05"/><feFuncG type="linear" slope="1.1" intercept="-.05"/><feFuncB type="linear" slope="1.1" intercept="-.05"/></feComponentTransfer></filter>
     <filter id="rough" x="-5%" y="-5%" width="110%" height="110%">
       <feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="7" result="w"/>
       <feDisplacementMap in="SourceGraphic" in2="w" scale="2.5" xChannelSelector="R" yChannelSelector="G" result="d"/>
@@ -327,7 +330,7 @@ input[type=range].v { writing-mode: vertical-lr; direction: rtl; width: 26px; he
   const fmt = s => isFinite(s) ? `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}` : '0:00';
 
   /* ---------- what Vince uploaded ---------- */
-  let M = { tracks: [], photos: [], bts: [], voicemail: [], tv: [], notebook: [], stems: [] };
+  let M = { tracks: [], photos: [], bts: [], voicemail: [], tv: [], notebook: [], stems: [], poster: [] };
   const ready = fetch('/api/deep/media', { cache: 'no-store' }).then(r => r.json()).then(d => { if (d && d.media) M = Object.assign(M, d.media); }).catch(() => {});
 
   /* ---------- sound ---------- */
@@ -416,7 +419,9 @@ input[type=range].v { writing-mode: vertical-lr; direction: rtl; width: 26px; he
   });
 
   let L = LAYOUT.land, pivot = { x: 800, y: 0 }, cordLen = 200;
-  let swingA = .16, swingV = 0, inten = 1, pool = null, poolY = 0;
+  let swingA = .16, swingV = 0, inten = 1, pool = null, poolY = 0, held = null;
+  // the newest image uploaded for the poster, if any
+  const posterPic = () => M.poster.filter(f => !isVideo(f) && !isAudio(f)).sort((a, z) => String(a.uploadedAt).localeCompare(String(z.uploadedAt))).pop();
   const shades = {};
   const panelOpen = () => !!document.querySelector('#panels .panel');
   function drawShell() {
@@ -438,11 +443,26 @@ input[type=range].v { writing-mode: vertical-lr; direction: rtl; width: 26px; he
     for (let i = 0; i < 26; i++) { const x = x0 + rnd() * ww, len = wh * (.08 + rnd() * .45); el('rect', { x, y: y0, width: 1 + rnd() * 3, height: len, fill: 'url(#drip)', opacity: .35 + rnd() * .5 }, shell); }
     // a torn poster, taped up crooked
     const px = x0 + ww * .07, py = y0 + wh * .12, pw = Math.min(ww * .13, 150), ph = pw * 1.42;
-    const poster = el('g', { transform: `rotate(-3 ${px + pw / 2} ${py + ph / 2})` }, shell);
+    const tilt = `rotate(-3 ${px + pw / 2} ${py + ph / 2})`, poster = el('g', { transform: tilt }, shell), pic = posterPic();
     el('rect', { x: px, y: py, width: pw, height: ph, fill: '#2a2a2a', stroke: '#333' }, poster);
-    el('text', { x: px + pw * .1, y: py + ph * .3, fill: '#4a4a4a', style: `font: 700 ${pw * .22}px var(--sans); letter-spacing: -.03em` }, poster).textContent = '16eyes';
-    el('rect', { x: px + pw * .1, y: py + ph * .4, width: pw * .8, height: ph * .45, fill: '#202020' }, poster);
-    el('circle', { cx: px + pw * .5, cy: py + ph * .62, r: pw * .14, fill: '#3a3a3a' }, poster);
+    if (pic) {
+      // the uploaded poster, in black and white, a little faded on the damp wall
+      el('clipPath', { id: 'postclip' }, poster).appendChild(el('rect', { x: px, y: py, width: pw, height: ph }));
+      el('image', { href: pic.url, x: px, y: py, width: pw, height: ph, preserveAspectRatio: 'xMidYMid slice', 'clip-path': 'url(#postclip)', filter: 'url(#mono)', opacity: .82 }, poster);
+    } else {
+      el('text', { x: px + pw * .1, y: py + ph * .3, fill: '#4a4a4a', style: `font: 700 ${pw * .22}px var(--sans); letter-spacing: -.03em` }, poster).textContent = '16eyes';
+      el('rect', { x: px + pw * .1, y: py + ph * .4, width: pw * .8, height: ph * .45, fill: '#202020' }, poster);
+      el('circle', { cx: px + pw * .5, cy: py + ph * .62, r: pw * .14, fill: '#3a3a3a' }, poster);
+    }
+    // a tap on the poster (once there is one) holds it up close
+    $('posterhit')?.remove();
+    if (pic) {
+      const hit = el('rect', { id: 'posterhit', x: px, y: py, width: pw, height: ph, fill: 'transparent', transform: tilt, tabindex: 0, role: 'button', 'aria-label': 'poster' });
+      room.insertBefore(hit, room.firstChild);   // under the objects, so the desk still wins a tap
+      const open = () => viewer([pic], 0, 'poster');
+      hit.addEventListener('click', open);
+      hit.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } });
+    }
     el('polygon', { points: `${px + pw},${py + ph} ${px + pw * .62},${py + ph} ${px + pw},${py + ph * .8}`, fill: '#1b1b1b' }, poster);   // torn corner
     [[px - 6, py - 4], [px + pw - 14, py - 6]].forEach(([tx, ty]) => el('rect', { x: tx, y: ty, width: 20, height: 9, fill: '#555', opacity: .6, transform: `rotate(${rnd() * 30 - 15} ${tx} ${ty})` }, poster));
     // a crack from the ceiling corner, a socket and its cable
@@ -485,7 +505,31 @@ input[type=range].v { writing-mode: vertical-lr; direction: rtl; width: 26px; he
     el('rect', { x: pivot.x - 7, y: cordLen - 26, width: 14, height: 14, fill: '#2a2a2a', stroke: '#444' }, g);
     el('circle', { cx: pivot.x, cy: cordLen, r: 12, fill: '#f4f4f4', id: 'bulbglass' }, g);
     el('circle', { cx: pivot.x, cy: cordLen, r: 40, fill: 'transparent' }, g);   // easier to grab
-    g.addEventListener('pointerdown', () => { swingV += (swingV >= 0 ? .55 : -.55); tone(220, .04, .03, 'triangle'); crackle(.08, .03); });
+    // grab the bulb and swing it, or flick it and let go; a tap knocks it and makes it stutter
+    g.addEventListener('pointerdown', e => {
+      e.preventDefault(); g.setPointerCapture(e.pointerId); g.classList.add('held');
+      held = { x: e.clientX, y: e.clientY, a: swingA, t: performance.now(), moved: false };
+      tone(220, .04, .03, 'triangle');
+    });
+    g.addEventListener('pointermove', e => {
+      if (!held) return;
+      if (Math.hypot(e.clientX - held.x, e.clientY - held.y) > 6) held.moved = true;
+      if (!held.moved) return;
+      const m = room.getScreenCTM(); if (!m) return;
+      const p = new DOMPoint(e.clientX, e.clientY).matrixTransform(m.inverse());
+      const a = Math.max(-1.25, Math.min(1.25, Math.atan2(p.x - pivot.x, Math.max(20, p.y - pivot.y))));
+      const now = performance.now(), dt = Math.max(.008, (now - held.t) / 1000);
+      swingV = swingV * .4 + ((a - swingA) / dt) * .6; swingA = a; held.t = now;
+      if (Math.abs(swingV) > 4 && Math.random() < .08) crackle(.03, .015);   // the cord creaks
+    });
+    const letGo = () => {
+      if (!held) return;
+      g.classList.remove('held');
+      if (!held.moved) { swingV += (swingV >= 0 ? .55 : -.55); crackle(.08, .03); burst = burstPattern(); burst.t = performance.now(); }
+      else swingV = Math.max(-6, Math.min(6, swingV));
+      held = null;
+    };
+    g.addEventListener('pointerup', letGo); g.addEventListener('pointercancel', letGo);
 
     // a soft shadow pool under every object; the light loop moves them (and the bulb's light on the floor)
     $('shadows').innerHTML = '';
@@ -512,6 +556,7 @@ input[type=range].v { writing-mode: vertical-lr; direction: rtl; width: 26px; he
   addEventListener('pageshow', e => { if (e.persisted) document.body.classList.remove('leaving'); });
 
   drawShell(); addEventListener('resize', drawShell);
+  ready.then(() => { if (posterPic()) drawShell(); });
 
   /* ---------- the bulb: swings on its cord and flickers; its light and the shadows follow it ---------- */
   let burst = [], nextBurst = performance.now() + 2500, lastT = performance.now();
@@ -531,7 +576,7 @@ input[type=range].v { writing-mode: vertical-lr; direction: rtl; width: 26px; he
     if (!reduce) {
       // a pendulum that never quite settles
       const acc = -3.9 * Math.sin(swingA) - .08 * swingV;
-      swingV += acc * dt; swingA += swingV * dt;
+      if (!held) { swingV += acc * dt; swingA += swingV * dt; }
       const E = .5 * swingV * swingV + 3.9 * (1 - Math.cos(swingA));
       if (E < .045 && Math.abs(swingV) > .02) swingV *= 1 + dt * .6;
       if (E < .001) swingV += .05;
@@ -543,7 +588,7 @@ input[type=range].v { writing-mode: vertical-lr; direction: rtl; width: 26px; he
         world.style.transform = shake && lvl < .3 && Math.random() < .3 ? `translate(${(Math.random() - .5) * 3}px, ${(Math.random() - .5) * 2}px)` : '';
       } else { inten = .9 + Math.random() * .1; world.style.transform = ''; }
     }
-    $('pend').setAttribute('transform', `rotate(${(swingA * 180 / Math.PI).toFixed(2)} ${pivot.x} ${pivot.y})`);
+    $('pend').setAttribute('transform', `rotate(${(-swingA * 180 / Math.PI).toFixed(2)} ${pivot.x} ${pivot.y})`);   // SVG turns clockwise, so negate to match the light
     $('halo').setAttribute('opacity', (.25 + inten * .75).toFixed(2));
     const v = Math.round(70 + 185 * inten); $('bulbglass').setAttribute('fill', `rgb(${v},${v},${v})`);
     // where the bulb is, in the room and on screen
