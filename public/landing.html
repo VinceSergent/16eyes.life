@@ -151,9 +151,9 @@ body { background: var(--bg); color: var(--ice); font-family: var(--sans); overf
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <filter id="smear" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB">
-    <feGaussianBlur in="SourceGraphic" stdDeviation="1.1 0.3" result="s"/>
+    <feGaussianBlur in="SourceGraphic" stdDeviation="0.6 0.15" result="s"/>
     <feColorMatrix in="s" type="matrix" values="1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0" result="r"/>
-    <feOffset in="r" dx="2" result="r2"/>
+    <feOffset in="r" dx="1" result="r2"/>
     <feColorMatrix in="s" type="matrix" values="0 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 1 0" result="gb"/>
     <feBlend in="r2" in2="gb" mode="screen"/>
   </filter>
@@ -449,7 +449,7 @@ body { background: var(--bg); color: var(--ice); font-family: var(--sans); overf
     // tape: per-line wobble, a tracking band, and bursts of horizontal tearing
     float line = floor(b.y * R.y * .5);
     // wobble and color split are measured in pixels, so a bigger window doesn't mean a blurrier picture
-    float jit = ((h(vec2(line, floor(t*20.))) - .5) * 1.4 + sin(b.y*22. + t*1.3) * .7) / R.x;
+    float jit = ((h(vec2(line, floor(t*20.))) - .5) * .9 + sin(b.y*22. + t*1.3) * .45) / R.x;
     float by = 1. - fract(t*.065);
     float band = smoothstep(.07, 0., abs(b.y - by));
     jit += band * (h(vec2(line, t)) - .5) * 34. / R.x;
@@ -475,7 +475,7 @@ body { background: var(--bg); color: var(--ice); font-family: var(--sans); overf
     bg *= mix(.22 + D*.6, 1.05, mid);
 
     // the interface, with red/blue drifting apart
-    vec2 ca = vec2(((s.x - .5) * 4. + 1.4) / R.x + tear*.01 + G*.003, 0.);
+    vec2 ca = vec2(((s.x - .5) * 2.5 + .8) / R.x + tear*.01 + G*.003, 0.);
     vec4 c0 = ui(s);
     vec3 fg = vec3(ui(s + ca).r, c0.g, ui(s - ca).b);
 
@@ -509,10 +509,10 @@ body { background: var(--bg); color: var(--ice); font-family: var(--sans); overf
     float fy = 1. - fract(t * .4);                       // one pass every 2.5s
     float focus = smoothstep(.22, 0., abs(b.y - fy));
     focus = max(focus, step(F.x, b.y) * step(b.y, F.y)); // the logo always stays sharp
-    fg = mix(mix(fg, soft, .22), fg, focus);
+    fg = mix(mix(fg, soft, .1), fg, focus);
     halo *= .45 + gm * 1.1;
 
-    vec3 col = bg * (1. - c0.a*.95) + fg*1.05 + smear*.08 + halo * 1.3;
+    vec3 col = bg * (1. - c0.a*.95) + fg*1.05 + smear*.04 + halo * .8;
 
     col *= 1. + B*.12;
     col += grain * (.34 + B*.35) + (vec3(h(gp + t), h(gp - t*1.3), h(gp + t*2.1)) - .5) * .07;
