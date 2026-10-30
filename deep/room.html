@@ -66,14 +66,13 @@ button { font-family: var(--sans); }
 
 .hud { position: fixed; z-index: 10; font: 700 9px var(--sans); letter-spacing: .28em; text-transform: uppercase; color: #777; text-decoration: none; }
 .hud:hover, .hud:focus-visible { color: #fff; outline: none; }
-#home { top: calc(14px + env(safe-area-inset-top, 0px)); left: 16px; }
-#home { font-size: 10px; color: #bbb; padding: 6px 8px; margin: -6px -8px; }
 #exit { pointer-events: all; cursor: pointer; outline: none; }
 #exit .sign { transition: transform .25s cubic-bezier(.2,.8,.2,1); transform-box: fill-box; transform-origin: center top; }
-#exit .word { fill: #f2f2f2; font: 700 30px var(--sans); letter-spacing: .2em; text-anchor: middle; filter: drop-shadow(0 0 6px rgba(255,255,255,.8)); animation: buzz 7s infinite steps(1); }
+#exit .word { fill: #ff2b2b; font: 700 30px var(--sans); letter-spacing: .2em; text-anchor: middle; filter: drop-shadow(0 0 7px rgba(255,30,30,.9)); animation: flash 1.6s infinite steps(1); }
 #exit:hover .sign, #exit:focus-visible .sign { transform: rotate(-2deg) translateY(3px); }
-#exit:hover .word, #exit:focus-visible .word { filter: drop-shadow(0 0 12px #fff); }
-@keyframes buzz { 0%, 61%, 63%, 64.5%, 100% { opacity: 1; } 62%, 64% { opacity: .25; } }
+#exit:hover .word, #exit:focus-visible .word { filter: drop-shadow(0 0 14px #ff2b2b); animation: none; }
+/* the exit sign flashes red: on, a stutter, then dark for a beat */
+@keyframes flash { 0%, 50%, 54%, 100% { opacity: 1; } 52%, 58% { opacity: .18; } 62% { opacity: .12; } 92% { opacity: .15; } }
 #off { position: fixed; inset: 0; z-index: 60; background: #000; opacity: 0; pointer-events: none; transition: opacity .25s .35s; }
 body.leaving #off { opacity: 1; pointer-events: all; }
 body.leaving #world { animation: crtoff .45s ease-in forwards; }
@@ -187,7 +186,6 @@ input[type=range].v { writing-mode: vertical-lr; direction: rtl; width: 26px; he
 <div id="dark" aria-hidden="true"></div>
 <div class="lines" aria-hidden="true"></div><div class="vig" aria-hidden="true"></div>
 
-<a class="hud" id="home" href="/">← exit</a>
 <div class="hud" id="hint">pick something up</div>
 
 <div id="world">
@@ -557,7 +555,6 @@ input[type=range].v { writing-mode: vertical-lr; direction: rtl; width: 26px; he
     tone(1400, .05, .03, 'sine'); crackle(.25, .05);
     setTimeout(() => { location.href = '/'; }, reduce ? 0 : 650);
   }
-  $('home').addEventListener('click', leave);
   // coming back with the browser's back button shouldn't leave the screen dark
   addEventListener('pageshow', e => { if (e.persisted) document.body.classList.remove('leaving'); });
 
