@@ -21,7 +21,7 @@ body { background: var(--bg); color: var(--ink); font-family: var(--sans); overf
 button { font-family: var(--sans); }
 
 /* screen texture over everything */
-#grain { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 50; pointer-events: none; opacity: .13; mix-blend-mode: screen; }
+#grain { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 50; pointer-events: none; opacity: .09; mix-blend-mode: screen; }
 .lines { position: fixed; inset: 0; z-index: 51; pointer-events: none; background: repeating-linear-gradient(0deg, rgba(0,0,0,.3) 0 1px, transparent 1px 3px); }
 .vig { position: fixed; inset: 0; z-index: 52; pointer-events: none; background: radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,.9) 100%); }
 
@@ -29,7 +29,7 @@ button { font-family: var(--sans); }
 #world { position: fixed; inset: 0; animation: power 1.4s ease-out both; }
 #world svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 #room { pointer-events: none; } #room .obj, #fx #pend { pointer-events: all; }
-@keyframes power { 0% { opacity: 0; transform: scaleY(.01); filter: brightness(3); } 35% { opacity: 1; transform: scaleY(.01); } 65% { transform: scaleY(1); filter: brightness(1.6) blur(1px); } 100% { filter: none; } }
+@keyframes power { 0% { opacity: 0; transform: scaleY(.01); filter: brightness(3); } 35% { opacity: 1; transform: scaleY(.01); } 65% { transform: scaleY(1); filter: brightness(1.6) blur(.5px); } 100% { filter: none; } }
 #room .wall, #bg .wall { fill: none; stroke: #3a3a3a; stroke-width: 1.4; }
 #bg .wall.soft { stroke: #222; }
 #pend { cursor: grab; }
@@ -80,7 +80,7 @@ body.leaving #world { animation: crtoff .45s ease-in forwards; }
 
 /* panels ("screens") */
 .panel { position: fixed; inset: 0; z-index: 20; background: rgba(0,0,0,.94); display: flex; flex-direction: column; animation: open .35s ease-out both; overflow: auto; }
-@keyframes open { from { opacity: 0; transform: scale(1.03); filter: blur(4px); } }
+@keyframes open { from { opacity: 0; transform: scale(1.03); filter: blur(2px); } }
 .panel header { position: sticky; top: 0; display: flex; justify-content: space-between; align-items: center; padding: calc(14px + env(safe-area-inset-top, 0px)) 16px 10px; background: linear-gradient(#000 60%, transparent); z-index: 2; }
 .panel h2 { margin: 0; font-weight: 700; font-size: 11px; letter-spacing: .3em; text-transform: uppercase; }
 .x { background: #fff; border: 1.5px solid #fff; color: #000; cursor: pointer; font: 700 12px var(--sans); letter-spacing: .22em; text-transform: uppercase; padding: 12px 16px 12px 18px; min-height: 44px; box-shadow: 0 0 14px rgba(255,255,255,.18); }
@@ -200,7 +200,7 @@ input[type=range].v { writing-mode: vertical-lr; direction: rtl; width: 26px; he
     <!-- worn, hand-drawn lines: a slight wobble, then speckles eaten out of them -->
     <filter id="rough" x="-5%" y="-5%" width="110%" height="110%">
       <feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="7" result="w"/>
-      <feDisplacementMap in="SourceGraphic" in2="w" scale="4" xChannelSelector="R" yChannelSelector="G" result="d"/>
+      <feDisplacementMap in="SourceGraphic" in2="w" scale="2.5" xChannelSelector="R" yChannelSelector="G" result="d"/>
       <feTurbulence type="fractalNoise" baseFrequency="0.75" numOctaves="2" seed="2" result="g"/>
       <feColorMatrix in="g" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -1.3 1.3" result="ga"/>
       <feComposite in="d" in2="ga" operator="in"/>
