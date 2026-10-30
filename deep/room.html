@@ -34,7 +34,7 @@ button { font-family: var(--sans); }
 #bg .wall.soft { stroke: #222; }
 #pend { cursor: grab; touch-action: none; }
 #pend.held { cursor: grabbing; }
-#posterhit { pointer-events: all; cursor: zoom-in; outline: none; }
+.posterhit { pointer-events: all; cursor: zoom-in; outline: none; }
 /* the bulb's light: everything far from it falls into the dark (positions set by the light loop) */
 #dark { position: fixed; inset: 0; z-index: 5; pointer-events: none;
   background: radial-gradient(circle at var(--lx, 50%) var(--ly, 20%), rgba(0,0,0,calc(var(--k, 0) * .9)) 0, rgba(0,0,0,calc(.1 + var(--k, 0) * .65)) var(--r1, 260px), rgba(0,0,0,calc(.5 + var(--k, 0) * .4)) var(--r2, 900px)); }
@@ -474,9 +474,11 @@ body.off #key { display: inline; }
     // one cramped room: desk against the wall, TV on a low cabinet with the CD player beside it,
     // the answering machine by the door, photo book on the floor
     land: { vb: [1600, 1000], wall: [290, 140, 1390, 640],
-      at: { 'o-desk': [330, 452, .8], 'o-tv': [760, 343, .9], 'o-cd': [990, 468, .8], 'o-door': [1180, 289, .9], 'o-am': [1160, 650, .85], 'o-book': [620, 715, .95] }, key: [1010, 700] },
+      at: { 'o-desk': [330, 452, .8], 'o-tv': [760, 343, .9], 'o-cd': [990, 468, .8], 'o-door': [1180, 289, .9], 'o-am': [1160, 650, .85], 'o-book': [620, 715, .95] }, key: [1010, 700],
+      posters: [[367, 196, -3], [532, 214, 2], [1024, 300, -1.5]], ps: 110 },
     port: { vb: [1000, 1700], wall: [90, 180, 910, 820],
-      at: { 'o-tv': [110, 520, .85], 'o-cd': [318, 642, .7], 'o-door': [620, 430, .95], 'o-desk': [70, 930, 1.5], 'o-am': [590, 1370, 1.05], 'o-book': [110, 1390, 1.15] }, key: [450, 1330] },
+      at: { 'o-tv': [110, 520, .85], 'o-cd': [318, 642, .7], 'o-door': [620, 430, .95], 'o-desk': [70, 930, 1.5], 'o-am': [590, 1370, 1.05], 'o-book': [110, 1390, 1.15] }, key: [450, 1330],
+      posters: [[130, 262, -3], [340, 292, 2], [628, 268, -1.5]], ps: 130 },
   };
   // the floor point each object stands on and how wide it is, for its shadow
   const objs = [...document.querySelectorAll('.obj')];
@@ -494,8 +496,8 @@ body.off #key { display: inline; }
   try { hasKey = sessionStorage.getItem('deep-key') === '1'; } catch (e) {}
   let L = LAYOUT.land, pivot = { x: 800, y: 0 }, cordLen = 200;
   let swingA = .16, swingV = 0, inten = 1, pool = null, poolY = 0, held = null;
-  // the newest image uploaded for the poster, if any
-  const posterPic = () => M.poster.filter(f => !isVideo(f) && !isAudio(f)).sort((a, z) => String(a.uploadedAt).localeCompare(String(z.uploadedAt))).pop();
+  // the newest three images uploaded for the posters, newest first
+  const posterPics = () => M.poster.filter(f => !isVideo(f) && !isAudio(f)).sort((a, z) => String(z.uploadedAt).localeCompare(String(a.uploadedAt))).slice(0, 3);
   const shades = {};
   const panelOpen = () => !!document.querySelector('#panels .panel');
   function drawShell() {
@@ -515,30 +517,34 @@ body.off #key { display: inline; }
     // drips running down the back wall from the ceiling
     let seed = 41; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
     for (let i = 0; i < 26; i++) { const x = x0 + rnd() * ww, len = wh * (.08 + rnd() * .45); el('rect', { x, y: y0, width: 1 + rnd() * 3, height: len, fill: 'url(#drip)', opacity: .35 + rnd() * .5 }, shell); }
-    // a torn poster, taped up crooked
-    const px = x0 + ww * .07, py = y0 + wh * .12, pw = Math.min(ww * .13, 150), ph = pw * 1.42;
-    const tilt = `rotate(-3 ${px + pw / 2} ${py + ph / 2})`, poster = el('g', { transform: tilt }, shell), pic = posterPic();
-    el('rect', { x: px, y: py, width: pw, height: ph, fill: '#2a2a2a', stroke: '#333' }, poster);
-    if (pic) {
-      // the uploaded poster, in black and white, a little faded on the damp wall
-      el('clipPath', { id: 'postclip' }, poster).appendChild(el('rect', { x: px, y: py, width: pw, height: ph }));
-      el('image', { href: pic.url, x: px, y: py, width: pw, height: ph, preserveAspectRatio: 'xMidYMid slice', 'clip-path': 'url(#postclip)', filter: 'url(#mono)', opacity: .82 }, poster);
-    } else {
-      el('text', { x: px + pw * .1, y: py + ph * .3, fill: '#4a4a4a', style: `font: 700 ${pw * .22}px var(--sans); letter-spacing: -.03em` }, poster).textContent = '16eyes';
-      el('rect', { x: px + pw * .1, y: py + ph * .4, width: pw * .8, height: ph * .45, fill: '#202020' }, poster);
-      el('circle', { cx: px + pw * .5, cy: py + ph * .62, r: pw * .14, fill: '#3a3a3a' }, poster);
-    }
-    // a tap on the poster (once there is one) holds it up close
-    $('posterhit')?.remove();
-    if (pic) {
-      const hit = el('rect', { id: 'posterhit', x: px, y: py, width: pw, height: ph, fill: 'transparent', transform: tilt, tabindex: 0, role: 'button', 'aria-label': 'poster' });
-      room.insertBefore(hit, room.firstChild);   // under the objects, so the desk still wins a tap
-      const open = () => viewer([pic], 0, 'poster');
-      hit.addEventListener('click', open);
-      hit.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } });
-    }
-    el('polygon', { points: `${px + pw},${py + ph} ${px + pw * .62},${py + ph} ${px + pw},${py + ph * .8}`, fill: '#1b1b1b' }, poster);   // torn corner
-    [[px - 6, py - 4], [px + pw - 14, py - 6]].forEach(([tx, ty]) => el('rect', { x: tx, y: ty, width: 20, height: 9, fill: '#555', opacity: .6, transform: `rotate(${rnd() * 30 - 15} ${tx} ${ty})` }, poster));
+    // posters taped up crooked: square like album covers, so an uploaded image is never cropped
+    const pics = posterPics(), ps = L.ps;
+    room.querySelectorAll('.posterhit').forEach(n => n.remove());
+    L.posters.forEach(([px, py, rot], i) => {
+      const pic = pics[i], tilt = `rotate(${rot} ${px + ps / 2} ${py + ps / 2})`, poster = el('g', { transform: tilt }, shell);
+      el('rect', { x: px, y: py, width: ps, height: ps, fill: '#202020', stroke: '#333' }, poster);
+      if (pic) {
+        // the uploaded image, whole, in black and white and a little faded on the damp wall
+        el('image', { href: pic.url, x: px + 3, y: py + 3, width: ps - 6, height: ps - 6, preserveAspectRatio: 'xMidYMid meet', filter: 'url(#mono)', opacity: .82 }, poster);
+        // a tap holds it up close
+        const hit = el('rect', { class: 'posterhit', x: px, y: py, width: ps, height: ps, fill: 'transparent', transform: tilt, tabindex: 0, role: 'button', 'aria-label': 'poster' });
+        room.insertBefore(hit, room.firstChild);   // under the objects, so the desk still wins a tap
+        const open = () => viewer(pics, i, 'poster');
+        hit.addEventListener('click', open);
+        hit.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } });
+      } else if (i === 0) {
+        el('text', { x: px + ps * .1, y: py + ps * .26, fill: '#4a4a4a', style: `font: 700 ${ps * .22}px var(--sans); letter-spacing: -.03em` }, poster).textContent = '16eyes';
+        el('rect', { x: px + ps * .1, y: py + ps * .36, width: ps * .8, height: ps * .52, fill: '#191919' }, poster);
+        el('circle', { cx: px + ps * .5, cy: py + ps * .62, r: ps * .16, fill: '#3a3a3a' }, poster);
+      } else if (i === 1) {
+        el('circle', { cx: px + ps / 2, cy: py + ps / 2, r: ps * .38, fill: '#161616', stroke: '#2e2e2e' }, poster);
+        el('circle', { cx: px + ps / 2, cy: py + ps / 2, r: ps * .1, fill: '#333' }, poster);
+      } else {
+        for (let k = 0; k < 4; k++) el('rect', { x: px + ps * .12, y: py + ps * (.18 + k * .17), width: ps * (.76 - k * .14), height: ps * .07, fill: '#333' }, poster);
+      }
+      if (i === 0) el('polygon', { points: `${px + ps},${py + ps} ${px + ps * .66},${py + ps} ${px + ps},${py + ps * .8}`, fill: '#1b1b1b' }, poster);   // torn corner
+      [[px - 6, py - 4], [px + ps - 14, py - 6]].forEach(([tx, ty]) => el('rect', { x: tx, y: ty, width: 20, height: 9, fill: '#555', opacity: .6, transform: `rotate(${rnd() * 30 - 15} ${tx} ${ty})` }, poster));
+    });
     // a crack from the ceiling corner, a socket and its cable
     let cx = x1 - ww * .04, cy = y0, d = `M${cx} ${cy}`;
     for (let i = 0; i < 9; i++) { cx += (rnd() - .6) * 30; cy += 18 + rnd() * 26; d += ` L${cx.toFixed(1)} ${cy.toFixed(1)}`; }
@@ -667,7 +673,7 @@ body.off #key { display: inline; }
   ['pointermove', 'pointerdown'].forEach(n => addEventListener(n, e => { torch.x = e.clientX; torch.y = e.clientY; }, { passive: true }));
 
   drawShell(); addEventListener('resize', drawShell);
-  ready.then(() => { if (posterPic()) drawShell(); });
+  ready.then(() => { if (posterPics().length) drawShell(); });
 
   /* ---------- the bulb: swings on its cord and flickers; its light and the shadows follow it ---------- */
   let burst = [], nextBurst = performance.now() + 2500, lastT = performance.now();
