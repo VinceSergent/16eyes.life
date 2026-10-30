@@ -526,7 +526,7 @@ input[type=range].v { writing-mode: vertical-lr; direction: rtl; width: 26px; he
       if (!held) return;
       g.classList.remove('held');
       if (!held.moved) { swingV += (swingV >= 0 ? .55 : -.55); crackle(.08, .03); burst = burstPattern(); burst.t = performance.now(); }
-      else swingV = Math.max(-6, Math.min(6, swingV));
+      else swingV = Math.max(-3.2, Math.min(3.2, swingV));   // a hard flick, but never over the top
       held = null;
     };
     g.addEventListener('pointerup', letGo); g.addEventListener('pointercancel', letGo);
