@@ -563,6 +563,7 @@ body { background: var(--bg); color: var(--ice); font-family: var(--sans); overf
     glc.width = ui.width = W; glc.height = ui.height = H;
     gl.viewport(0, 0, W, H);
     buildLogo();
+    rainCols = [];
   }
 
   // logo: heavy wide type built out of horizontal phosphor lines
@@ -826,9 +827,75 @@ body { background: var(--bg); color: var(--ice); font-family: var(--sans); overf
     }
   }
 
+  // gun rain (from the moodboard): columns of rifle silhouettes falling slowly behind everything, very faint
+  // each gun is drawn sideways (muzzle right), then stood up barrel-down
+  let guns = [];
+  function sprite(len, h, draw) {
+    const src = document.createElement('canvas'); src.width = Math.round(len); src.height = Math.round(h);
+    const x = src.getContext('2d'); x.fillStyle = '#e8f6fa'; draw(x, len / 100);
+    const c = document.createElement('canvas'); c.width = src.height; c.height = src.width;
+    const y = c.getContext('2d'); y.translate(c.width, 0); y.rotate(Math.PI / 2); y.drawImage(src, 0, 0);
+    return c;
+  }
+  function poly(x, u, pts) { x.beginPath(); pts.forEach(([a, b], i) => i ? x.lineTo(a * u, b * u) : x.moveTo(a * u, b * u)); x.closePath(); x.fill(); }
+  function buildGuns() {
+    const rifle = sprite(68 * S, 68 * S * .3, (x, u) => {
+      poly(x, u, [[0, 6], [22, 9], [22, 17], [0, 24]]);                // stock
+      x.fillRect(22 * u, 7 * u, 34 * u, 10 * u);                         // receiver
+      poly(x, u, [[30, 17], [36, 17], [32, 29], [26, 27]]);             // grip
+      x.beginPath(); x.moveTo(40 * u, 17 * u); x.quadraticCurveTo(44 * u, 26 * u, 56 * u, 30 * u); x.lineTo(58 * u, 25 * u); x.quadraticCurveTo(50 * u, 22 * u, 50 * u, 17 * u); x.closePath(); x.fill();   // magazine
+      x.fillRect(56 * u, 8.5 * u, 14 * u, 7 * u);                        // handguard
+      x.fillRect(70 * u, 10.4 * u, 30 * u, 3.2 * u);                     // barrel
+      x.fillRect(90 * u, 6.5 * u, 4 * u, 4 * u);                         // front sight
+    });
+    const mac = sprite(36 * S, 36 * S * .9, (x, u) => {
+      x.fillRect(4 * u, 8 * u, 50 * u, 3 * u);                           // folded wire stock
+      x.fillRect(4 * u, 8 * u, 4 * u, 18 * u);                           // butt plate
+      x.fillRect(16 * u, 10 * u, 62 * u, 24 * u);                        // boxy receiver
+      x.fillRect(78 * u, 16 * u, 22 * u, 9 * u);                         // threaded barrel
+      poly(x, u, [[38, 34], [54, 34], [54, 64], [38, 64]]);             // grip
+      x.fillRect(41 * u, 64 * u, 10 * u, 26 * u);                        // long mag out the bottom of the grip
+      x.lineWidth = 2.5 * u; x.strokeStyle = '#e8f6fa';
+      x.beginPath(); x.moveTo(52 * u, 34 * u); x.quadraticCurveTo(66 * u, 36 * u, 64 * u, 46 * u); x.lineTo(52 * u, 46 * u); x.stroke();   // trigger guard
+    });
+    const pistol = sprite(28 * S, 28 * S * .8, (x, u) => {
+      x.fillRect(0, 4 * u, 100 * u, 20 * u);                             // slide
+      x.fillRect(12 * u, 24 * u, 70 * u, 9 * u);                         // frame
+      poly(x, u, [[4, 30], [32, 30], [24, 80], [-4, 76]]);             // grip
+      x.lineWidth = 3 * u; x.strokeStyle = '#e8f6fa';
+      x.beginPath(); x.moveTo(32 * u, 33 * u); x.quadraticCurveTo(48 * u, 36 * u, 50 * u, 33 * u); x.lineTo(50 * u, 46 * u); x.quadraticCurveTo(40 * u, 48 * u, 32 * u, 44 * u); x.stroke();   // trigger guard
+    });
+    guns = [rifle, rifle, mac, pistol, mac, pistol];
+  }
+  let rainCols = [];
+  function buildRain() {
+    buildGuns();
+    const step = 50 * S, n = Math.ceil(W / step) + 1;
+    rainCols = Array.from({ length: n }, (_, i) => {
+      const seq = Array.from({ length: 5 }, () => ({ img: guns[Math.floor(Math.random() * guns.length)], gap: (10 + Math.random() * 14) * S }));
+      return { x: i * step + (Math.random() - .5) * 6 * S, off: Math.random() * H, v: (10 + Math.random() * 14) * S, flip: Math.random() < .5, seq, pitch: seq.reduce((a, s) => a + s.img.height + s.gap, 0) };
+    });
+  }
+  function drawRain(t) {
+    if (!guns.length || !rainCols.length) buildRain();
+    g.save(); g.globalAlpha = .11;
+    for (const c of rainCols) {
+      let y = ((c.off + (reduce ? 0 : t * c.v)) % c.pitch) - c.pitch, k = 0;
+      while (y < H) {
+        const { img, gap } = c.seq[k++ % c.seq.length], x = c.x + (34 * S - img.width) / 2;
+        if (y + img.height > 0) {
+          if (c.flip) { g.save(); g.translate(x * 2 + img.width, 0); g.scale(-1, 1); g.drawImage(img, x, y); g.restore(); }
+          else g.drawImage(img, x, y);
+        }
+        y += img.height + gap;
+      }
+    }
+    g.restore();
+  }
   function drawUI(t) {
     g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, W, H);
     if (deep) { g.clearRect(0, 0, W, H); return; }
+    drawRain(t);
     g.globalAlpha = 1 - lift * .92;
     // CD
     const d = rect($('disc'));
