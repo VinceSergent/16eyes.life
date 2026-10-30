@@ -27,14 +27,15 @@
   color-scheme: dark;
 }
 [hidden] { display: none !important; }
-html, body { height: 100%; }
-body { background: var(--bg); color: var(--ice); font-family: var(--sans); overflow-x: hidden; }
+html, body { height: 100%; overscroll-behavior: none; }
+body { margin: 0; background: var(--bg); color: var(--ice); font-family: var(--sans); overflow-x: hidden; }
 
-#gl { position: fixed; inset: 0; width: 100%; height: 100%; display: block; z-index: 0; }
+/* sized to the tallest viewport, so the phone's address bar sliding in and out never stretches or rebuilds it */
+#gl { position: fixed; top: 0; left: 0; width: 100%; height: 100vh; height: 100lvh; display: block; z-index: 0; }
 
 .stage {
   position: relative; z-index: 1;
-  min-height: 100vh; min-height: 100dvh; box-sizing: border-box;
+  min-height: 100vh; min-height: 100svh; box-sizing: border-box;
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px;
   padding-block: 48px 56px;
   padding-left: max(16px, env(safe-area-inset-left, 0px));
@@ -143,6 +144,13 @@ body { background: var(--bg); color: var(--ice); font-family: var(--sans); overf
   .stage { gap: 18px; padding-block: 64px 72px; }
   .disc-wrap { width: min(42vw, 170px); }
 }
+/* short screens (phones with the browser bars showing): tighten so everything fits without scrolling */
+@media (max-height: 760px) {
+  .stage { gap: 11px; padding-block: 18px 22px; }
+  .deeper { margin-top: 4px; }
+  .disc-wrap { width: min(42vw, 170px, 22svh); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .drift, .bar i { animation: none !important; }
   .bar i { width: 68%; }
@@ -558,8 +566,9 @@ body { background: var(--bg); color: var(--ice); font-family: var(--sans); overf
   let S = 1, W = 0, H = 0;
   function size() {
     const dpr = window.devicePixelRatio || 1;
-    S = Math.min(Math.max(dpr, 1.4), 2);
-    W = Math.round(innerWidth * S); H = Math.round(innerHeight * S);
+    // phones get a lighter canvas: the whole frame is re-uploaded to the GPU every frame
+    S = Math.min(Math.max(dpr, 1.4), matchMedia('(pointer: coarse)').matches ? 1.5 : 2);
+    W = Math.round(innerWidth * S); H = Math.round((glc.clientHeight || innerHeight) * S);
     glc.width = ui.width = W; glc.height = ui.height = H;
     gl.viewport(0, 0, W, H);
     buildLogo();
@@ -1027,7 +1036,11 @@ body { background: var(--bg); color: var(--ice); font-family: var(--sans); overf
     requestAnimationFrame(frame);
   }
   size();
-  addEventListener('resize', () => { clearTimeout(size.t); size.t = setTimeout(size, 120); });
+  addEventListener('resize', () => {
+    // scrolling on a phone fires resize as the address bar moves; only rebuild when the size really changed
+    if (Math.round(innerWidth * S) === W && Math.round(glc.clientHeight * S) === H) return;
+    clearTimeout(size.t); size.t = setTimeout(size, 120);
+  });
   (document.fonts && document.fonts.load ? document.fonts.load('700 100px Helvetica').catch(() => {}) : Promise.resolve()).then(() => buildLogo());
   requestAnimationFrame(frame);
 })();
