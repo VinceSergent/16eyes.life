@@ -10,7 +10,7 @@ const PLACES = [
   ["bts", "Photo book: BTS", "Behind-the-scenes photos and videos."],
   ["voicemail", "Answering machine", "Snippets and voice notes (audio)."],
   ["tv", "CRT TV", "Videos. Each one becomes a channel."],
-  ["stems", "Studio desk", "Four stems of one song, all the same length, named drums, vocals, bass and instruments."],
+  ["stems", "Studio desk", "Stems for one or more songs. Name each file with the song and the part, like \"fast lane drums\", \"fast lane vocals\", \"fast lane bass\", \"fast lane instruments\". A song's parts should all be the same length."],
   ["poster", "Poster on the wall", "Up to three images, square like album covers. The newest three go up on the wall."],
   ["door", "Behind the locked door", "Anything. Only shows after the door code."],
 ];
