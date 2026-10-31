@@ -34,6 +34,8 @@
 }
 [hidden] { display: none !important; }
 html, body { height: 100%; overscroll-behavior: none; }
+/* when the enlarged column fits (see fit()), only empty padding hangs past the edge: don't let it scroll */
+html.fits, html.fits body { overflow: hidden; }
 body { margin: 0; background: var(--bg); color: var(--ice); font-family: var(--sans); overflow-x: hidden; }
 
 /* sized to the tallest viewport, so the phone's address bar sliding in and out never stretches or rebuilds it */
@@ -42,8 +44,12 @@ body { margin: 0; background: var(--bg); color: var(--ice); font-family: var(--s
 .stage {
   position: relative; z-index: 1;
   min-height: 100vh; min-height: 100svh; box-sizing: border-box;
+  /* shrink the box by the same amount it's enlarged, so the enlarged column still exactly fills the screen */
+  min-height: calc(100svh / var(--z, 1)); width: calc(100% / var(--z, 1));
+  margin-inline: auto;
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px;
   padding-block: 48px 56px;
+  transform: translateY(calc(50svh - 50svh / var(--z, 1))) scale(var(--z, 1));   /* --z set by fit(): a touch bigger, as long as it still fits */
   padding-left: max(16px, env(safe-area-inset-left, 0px));
   padding-right: max(16px, env(safe-area-inset-right, 0px));
   text-align: center;
@@ -427,7 +433,7 @@ body { margin: 0; background: var(--bg); color: var(--ice); font-family: var(--s
   const FS = `
   precision highp float;
   varying vec2 v;
-  uniform vec2 R; uniform float T; uniform sampler2D U; uniform float G; uniform vec2 M; uniform float D; uniform vec2 F; uniform float B;
+  uniform vec2 R; uniform float T; uniform sampler2D U; uniform float G; uniform vec2 M; uniform float D; uniform vec2 F; uniform float B; uniform vec3 Q;
   float h(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
   float n(vec2 p){ vec2 i = floor(p), f = fract(p); vec2 u = f*f*(3.-2.*f);
     return mix(mix(h(i), h(i+vec2(1,0)), u.x), mix(h(i+vec2(0,1)), h(i+vec2(1,1)), u.x), u.y); }
@@ -451,7 +457,8 @@ body { margin: 0; background: var(--bg); color: var(--ice); font-family: var(--s
     c = mix(vec3(dot(c, vec3(.3, .59, .11))), c, .75) * .72;
     return c;
   }
-  vec4 ui(vec2 uv){ return texture2D(U, uv); }
+  // the interface is drawn at its natural size and enlarged here, around the middle of the column (Q.xy), by Q.z
+  vec4 ui(vec2 uv){ return texture2D(U, Q.xy + (uv - Q.xy) / Q.z); }
 
   void main(){
     vec2 uv = v;
@@ -564,7 +571,7 @@ body { margin: 0; background: var(--bg); color: var(--ice); font-family: var(--s
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
   const aLoc = gl.getAttribLocation(prog, 'a'); gl.enableVertexAttribArray(aLoc); gl.vertexAttribPointer(aLoc, 2, gl.FLOAT, false, 0, 0);
   const L = k => gl.getUniformLocation(prog, k);
-  const uR = L('R'), uT = L('T'), uG = L('G'), uM = L('M'), uD = L('D'), uF = L('F'), uB = L('B');
+  const uR = L('R'), uT = L('T'), uG = L('G'), uM = L('M'), uD = L('D'), uF = L('F'), uB = L('B'), uQ = L('Q');
   gl.uniform1i(L('U'), 0);
   const tex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, tex);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
@@ -583,6 +590,7 @@ body { margin: 0; background: var(--bg); color: var(--ice); font-family: var(--s
     gl.viewport(0, 0, W, H);
     buildLogo();
     rainCols = [];
+    fit();
   }
 
   // logo: heavy wide type built out of horizontal phosphor lines
@@ -719,7 +727,20 @@ body { margin: 0; background: var(--bg); color: var(--ice); font-family: var(--s
     g.restore();
   }
 
-  const rect = el => { const r = el.getBoundingClientRect(); return { x: r.left * S, y: r.top * S, w: r.width * S, h: r.height * S, cx: (r.left + r.width / 2) * S, cy: (r.top + r.height / 2) * S }; };
+  // where things sit before the column is enlarged (the shader does the enlarging), in canvas pixels
+  let Z = 1, OX = 0, OY = 0;
+  const rect = el => { const r = el.getBoundingClientRect(), x = OX + (r.left - OX) / Z, y = OY + (r.top - OY) / Z, w = r.width / Z, h = r.height / Z;
+    return { x: x * S, y: y * S, w: w * S, h: h * S, cx: (x + w / 2) * S, cy: (y + h / 2) * S }; };
+  // enlarge the column up to 10%, but never past the edges of the screen
+  function fit() {
+    const st = $('stage'), kids = [...st.children].filter(k => k.offsetHeight);
+    if (!kids.length) return;
+    const span = kids[kids.length - 1].offsetTop + kids[kids.length - 1].offsetHeight - kids[0].offsetTop;
+    const wide = Math.max(...kids.map(k => k.offsetWidth));
+    Z = Math.max(1, Math.min(1.1, (innerHeight - 16) / span, (innerWidth - 48) / wide));
+    st.style.setProperty('--z', Z.toFixed(3));
+    document.documentElement.classList.toggle('fits', Z > 1);
+  }
   // the EP drops Friday Nov 13 2026 at midnight in Houston (CST, UTC-6)
   const EP_AT = Date.parse('2026-11-13T06:00:00Z');
   const pad = (n, k = 2) => String(n).padStart(k, '0');
@@ -1042,13 +1063,15 @@ body { margin: 0; background: var(--bg); color: var(--ice); font-family: var(--s
     hover += (hoverTarget - hover) * Math.min(1, dt * 7);
     smx += (mx - smx) * .03; smy += (my - smy) * .03;
     depth += ((deep ? 1 : 0) - depth) * .05;
+    const sr = $('stage').getBoundingClientRect(); OX = sr.left + sr.width / 2; OY = sr.top + sr.height / 2;
     drawUI(t);
     gl.bindTexture(gl.TEXTURE_2D, tex);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, ui);
     gl.uniform2f(uR, W, H); gl.uniform1f(uT, reduce ? 12 : t); gl.uniform1f(uG, reduce ? 0 : glitch);
     gl.uniform2f(uM, smx, -smy); gl.uniform1f(uD, depth);
-    const lr = rect($('logo'));
-    gl.uniform2f(uF, 1 - (lr.y + lr.h) / H - .015, 1 - lr.y / H + .015);
+    const lr = rect($('logo')), ly = OY * S + (lr.y - OY * S) * Z, lh = lr.h * Z;
+    gl.uniform2f(uF, 1 - (ly + lh) / H - .015, 1 - ly / H + .015);
+    gl.uniform3f(uQ, OX * S / W, 1 - OY * S / H, Z);
     gl.uniform1f(uB, reduce ? 0 : beat);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     requestAnimationFrame(frame);
@@ -1059,7 +1082,7 @@ body { margin: 0; background: var(--bg); color: var(--ice); font-family: var(--s
     if (Math.round(innerWidth * S) === W && Math.round(glc.clientHeight * S) === H) return;
     clearTimeout(size.t); size.t = setTimeout(size, 120);
   });
-  (document.fonts && document.fonts.load ? document.fonts.load('700 100px Helvetica').catch(() => {}) : Promise.resolve()).then(() => buildLogo());
+  (document.fonts && document.fonts.load ? document.fonts.load('700 100px Helvetica').catch(() => {}) : Promise.resolve()).then(() => { buildLogo(); fit(); });
   requestAnimationFrame(frame);
 })();
 </script>
