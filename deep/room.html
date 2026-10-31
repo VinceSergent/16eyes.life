@@ -175,6 +175,8 @@ body.leaving #world { animation: crtoff .45s ease-in forwards; }
 .meter i { position: absolute; left: 0; right: 0; bottom: 0; height: 0; background: linear-gradient(#fff, #9a9a9a); }
 input[type=range].v { writing-mode: vertical-lr; direction: rtl; width: 26px; height: 170px; accent-color: #e8e8e8; }
 .strip .row .btn { padding: 5px 0; min-width: 30px; font-size: 9px; }
+.songsel { display: flex; gap: 12px; align-items: center; justify-content: center; margin-top: 16px; }
+.songsel .cap { min-width: 120px; text-align: center; text-transform: uppercase; letter-spacing: .12em; }
 .trans { display: flex; gap: 14px; align-items: center; justify-content: center; flex-wrap: wrap; margin-top: 18px; }
 .trans label { display: flex; gap: 8px; align-items: center; }
 .trans input[type=range] { accent-color: #e8e8e8; width: 120px; }
@@ -1284,15 +1286,26 @@ body.off #key { display: inline; }
 
   /* ---------- 7. studio desk: mix the stems ---------- */
   OPENERS.desk = () => {
-    // four faders, always in this order; uploaded stems land on the fader their file name matches
+    // four faders, always in this order; uploaded stems land on the fader their file name matches.
+    // Files are grouped into songs by what's left of the name once the part is taken out
+    // ("fast lane drums.mp3" and "fast lane - vocals.wav" are both "fast lane").
     const names = ['drums', 'vocals', 'bass', 'instruments'];
     const pick = [/drum|perc|kick|snare|hat/i, /voc|vox|voice|acapella/i, /bass|808|sub/i, /./];
-    const real = M.stems.filter(isAudio), slots = names.map(() => null);
-    real.forEach(f => { const n = clean(f.name), k = pick.findIndex((re, i) => re.test(n) && !slots[i]); if (k >= 0) slots[k] = f; });
-    const has = slots.some(Boolean);
+    const partWords = /\b(drums?|percussion|perc|kicks?|snares?|hats?|hi ?hats?|vocals?|vox|voices?|acapella|bass|808s?|sub|instruments?|instrumental|inst|music|melody|keys|beat|stems?)\b/gi;
+    const songs = [];
+    M.stems.filter(isAudio).forEach(f => {
+      const n = clean(f.name), key = n.replace(partWords, ' ').replace(/[\s\-–—.()]+/g, ' ').trim().toLowerCase();
+      let song = songs.find(x => x.key === key);
+      if (!song) songs.push(song = { key, slots: names.map(() => null), bufs: null, load: null });
+      const k = pick.findIndex((re, i) => re.test(n) && !song.slots[i]); if (k >= 0) song.slots[k] = f;
+    });
+    let cur = 0;
+    const has = songs.length > 0;
+    const songName = i => songs[i].key || (songs.length > 1 ? 'song ' + (i + 1) : 'untitled');
     const b = h(`<div class="desk"><div class="strips">${names.map((n, i) => `<div class="strip" data-i="${i}"><div class="nm">${esc(n)}</div>
       <div class="fadr"><div class="meter"><i></i></div><input class="v" type="range" min="0" max="1" step="0.01" value="0.8" aria-label="${esc(n)} volume"></div>
       <div class="row"><button class="btn" data-m>m</button><button class="btn" data-s>s</button></div></div>`).join('')}</div>
+      ${songs.length > 1 ? `<div class="songsel"><button class="btn" id="sprev" aria-label="previous song">◀</button><span class="cap" id="sname"></span><button class="btn" id="snext" aria-label="next song">▶</button></div>` : ''}
       <div class="trans"><button class="btn" id="tp">play</button><label class="cap">speed <input id="spd" type="range" min="0.7" max="1.5" step="0.01" value="1"></label><span class="cap" id="spv">1.00x</span></div>
       <div class="ph" id="dph">${has ? 'loading stems…' : ''}</div></div>`);
     const a = ac(); if (!a) { openPanel('studio', b); return; }
@@ -1309,8 +1322,23 @@ body.off #key { display: inline; }
     const spd = b.querySelector('#spd'), spv = b.querySelector('#spv'), tp = b.querySelector('#tp');
     spd.oninput = () => { speed = +spd.value; spv.textContent = speed.toFixed(2) + 'x'; sources.forEach(s => s.playbackRate && s.playbackRate.setTargetAtTime(speed, a.currentTime, .05)); };
 
-    // real stems: decode them all, then start every one at the same instant
-    const loadReal = has ? Promise.all(slots.map(f => f ? fetch(f.url).then(r => r.arrayBuffer()).then(x => a.decodeAudioData(x)) : null)).then(x => { bufs = x; b.querySelector('#dph').textContent = ''; }).catch(() => { b.querySelector('#dph').textContent = "couldn't load the stems"; }) : null;
+    // real stems: decode a song's parts (once), then start every one at the same instant
+    const dph = b.querySelector('#dph');
+    function load(i) {
+      const song = songs[i];
+      if (!song.load) song.load = Promise.all(song.slots.map(f => f ? fetch(f.url).then(r => r.arrayBuffer()).then(x => a.decodeAudioData(x)) : null)).then(x => { song.bufs = x; });
+      dph.textContent = song.bufs ? '' : 'loading stems…';
+      return song.load.then(() => { if (cur === i) dph.textContent = ''; }, () => { if (cur === i) dph.textContent = "couldn't load the stems"; });
+    }
+    if (has) load(0);
+    const sname = b.querySelector('#sname');
+    function pickSong(i) {
+      const was = playing; stop(); offset = 0;
+      cur = (i + songs.length) % songs.length; bufs = songs[cur].bufs;
+      sname.textContent = songName(cur); load(cur);
+      if (was) start();
+    }
+    if (sname) { sname.textContent = songName(0); b.querySelector('#sprev').onclick = () => pickSong(cur - 1); b.querySelector('#snext').onclick = () => pickSong(cur + 1); }
 
     // placeholder stems: a slow loop, scheduled a little ahead
     const BARS = [[110, 130.8, 164.8], [87.3, 110, 130.8], [130.8, 164.8, 196], [98, 123.5, 146.8]];   // Am F C G
@@ -1336,7 +1364,8 @@ body.off #key { display: inline; }
     function start() {
       solo('desk'); playing = true; tp.textContent = 'stop'; $('o-desk').classList.add('playing');
       if (has) {
-        if (!bufs) { loadReal.then(() => { if (playing && bufs) start(); }); return; }
+        bufs = songs[cur].bufs;
+        if (!bufs) { const want = cur; load(cur).then(() => { if (playing && cur === want && songs[cur].bufs) start(); }); return; }
         const t = a.currentTime + .08; startAt = t;
         sources = bufs.map((bf, i) => { if (!bf) return null; const s = a.createBufferSource(); s.buffer = bf; s.loop = true; s.playbackRate.value = speed; s.connect(ch[i].g); s.start(t, offset % bf.duration); return s; }).filter(Boolean);
       } else { nextT = a.currentTime + .08; step = 0; sched(); timer = setInterval(sched, 50); }
