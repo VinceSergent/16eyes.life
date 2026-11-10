@@ -188,7 +188,7 @@ body { margin: 0; background: var(--bg); color: var(--ice); font-family: var(--s
     <button class="hub" id="eye1" aria-label="The center of the disc"></button>
   </div>
 
-  <div class="count" id="count" role="timer" aria-label="EP out Friday, November 13">00:00:00:00.00</div>
+  <div class="count" id="count" role="timer" aria-label="EP out Friday, November 20">00:00:00:00.00</div>
 
   <div id="logoWrap"><h1 class="logo" id="logo">16eyes</h1></div>
 
@@ -741,8 +741,8 @@ body { margin: 0; background: var(--bg); color: var(--ice); font-family: var(--s
     st.style.setProperty('--z', Z.toFixed(3));
     document.documentElement.classList.toggle('fits', Z > 1);
   }
-  // the EP drops Friday Nov 13 2026 at midnight in Houston (CST, UTC-6)
-  const EP_AT = Date.parse('2026-11-13T06:00:00Z');
+  // the EP drops Friday Nov 20 2026 at midnight in Houston (CST, UTC-6)
+  const EP_AT = Date.parse('2026-11-20T06:00:00Z');
   const pad = (n, k = 2) => String(n).padStart(k, '0');
   function countText() {
     const ms = EP_AT - Date.now();
